@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -5,15 +6,26 @@
 void mergesort(int*, int, int);
 void merge(int*, int, int);
 
+struct thread_args {
+    int* arr;
+    int lb;
+    int rb;
+};
+
+void* thread_function(void* args) {
+    struct thread_args* targs = (struct thread_args*) args;
+    mergesort(targs->arr, targs->lb, targs->rb);
+    return NULL;
+}
+
 int main() {
-    int size; 
+    int size;
     scanf("%d", &size);
 
     int *arr = malloc(size * sizeof(int));
     for (int i = 0; i < size; i++) {
         scanf("%d", &arr[i]);
     }
-
     clock_t start = clock();
     mergesort(arr, 0, size - 1);
     clock_t end = clock();
@@ -26,10 +38,17 @@ int main() {
 }
 
 void mergesort(int* arr, int lb, int rb) {
+    pthread_t thread1, thread2;
     if (lb >= rb) return;
     int mid = lb + (rb - lb) / 2;
-    mergesort(arr, lb, mid);
-    mergesort(arr, mid + 1, rb);
+    struct thread_args targs1 = {arr, lb, mid};
+    struct thread_args targs2 = {arr, mid + 1, rb};
+    pthread_create(&thread1, NULL, thread_function, &targs1);
+    // mergesort(arr, lb, mid);
+    pthread_create(&thread2, NULL, thread_function, &targs2);
+    // mergesort(arr, mid + 1, rb);
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
     merge(arr, lb, rb);
 }
 
