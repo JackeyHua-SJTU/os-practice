@@ -9,13 +9,18 @@
 #define MAX_INPUT 1024
 #define MAX_ARGS 1024
 
+/* Special commands. */
+const char* CD = "cd";  // cd should change the current working directory, not in a child process.
+const char* EXIT = "exit";  // exit should terminate the shell.
+const char* PWD = "pwd";
+const char* WC = "wc";
+const char* CAT = "cat";
+const char* LS = "ls";
+
 void init_name_and_path(char[], char[]);
 int parse_input(char[], char**);
 void exec(char**, int, int);
 
-// TODO: support pipe
-// Feat: 1. run single shell command
-//       2. mimic shell colors
 
 int main() {
     char name[MAX_NAME];
@@ -23,7 +28,6 @@ int main() {
     char input[MAX_INPUT];
     init_name_and_path(name, path);
     
-    // TODO: fix bug in while(1)
     while (1) {
         /* change the color of info into what real bash is like */
         printf("\033[1;32m%s\033[0m:\033[1;34m%s\033[0m$ ", name, path);
@@ -32,16 +36,26 @@ int main() {
         
         int argc = parse_input(input, argv);
         
-        // if (fork() == 0) {
-        //     /* absolute path for shell command */
-        //     char* bin = malloc(MAX_NAME * sizeof(char));
-        //     sprintf(bin, "/bin/%s", argv[0]);
-        //     execv(bin, argv);
-        //     free(bin);
-        // } else {
-        //     wait(0);
-        // }
-        exec(argv, 0, argc - 1);
+        if (argc == 0) {
+            continue;
+        } else if (strcmp(argv[0], EXIT) == 0) {
+            break;
+        } else if (strcmp(argv[0], CD) == 0) {
+            int ret;
+            if (argc == 1) {
+                /* cd with default value will go to ~ dir */
+                ret = chdir(getenv("HOME"));
+            } else {
+                ret = chdir(argv[1]);
+            }
+            if (ret == -1) {
+                perror("cd");
+            } else {
+                init_name_and_path(name, path);
+            }
+        } else {
+            exec(argv, 0, argc - 1);
+        }
         free(argv);   
     }
 
@@ -49,6 +63,11 @@ int main() {
 }
 
 void exec(char** argv, int lb, int rb) {
+    if (lb < 0 || rb < 0 || lb > rb) {
+        printf("Invalid parameters.\n");
+        return;
+    }
+
     // valid range: [lb, rb]
     /* check whether there is a pipe */
     int possible_right = -1;
@@ -58,17 +77,39 @@ void exec(char** argv, int lb, int rb) {
             break;
         }
     }
-    printf("possible_right: %d\n", possible_right);
+    // printf("possible_right: %d\n", possible_right);
     if (possible_right == -1) {
-        if (fork() == 0) {
-            execvp(argv[lb], argv + lb);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            exit(-1);
+        } else if (pid == 0) {
+            int ret;
+            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0) {
+                char tmp[MAX_PATH];
+                getcwd(tmp, MAX_PATH);
+                char concat[MAX_PATH + 10];
+                sprintf(concat, "%s/%s", tmp, argv[lb]);
+                argv[lb] = concat;
+                ret = execv(argv[lb], argv + lb);
+            } else {
+                ret = execvp(argv[lb], argv + lb);
+            }
+            if (ret == -1) {
+                perror("execvp");
+                exit(-1);
+            }
         } else {
             wait(0);
         }
     } else { 
         int p[2];
         pipe(p);
-        if (fork() == 0) {
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            exit(-1);
+        } else if (pid == 0) {
             close(p[0]);
             close(1);
             dup(p[1]);
@@ -79,29 +120,50 @@ void exec(char** argv, int lb, int rb) {
             // }
             // new_argv[possible_right - lb] = NULL;
             argv[possible_right] = NULL;
-            execvp(argv[lb], argv + lb);
+            int ret;
+            if (strcmp(argv[lb], PWD) == 0) {
+                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/pwd", argv + lb);
+            } else if (strcmp(argv[lb], WC) == 0) {
+                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/wc", argv + lb);
+            } else if (strcmp(argv[lb], CAT) == 0) {
+                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/cat", argv + lb);
+            } else if (strcmp(argv[lb], LS) == 0) {
+                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/ls", argv + lb);
+            } else {
+                ret = execvp(argv[lb], argv + lb);
+            }
+            if (ret == -1) {
+                perror("execvp");
+                exit(-1);
+            }
         } else {
-            wait(0);
+            int status;
+            wait(&status);
+            if (status != 0) {
+                return;
+            }
+            int copy = dup(0);
             close(p[1]);
             close(0);
             dup(p[0]);
             close(p[0]);
             exec(argv, possible_right + 1, rb);
+            /* We should recover the STDIN file descriptor. 0 now is the read side of a pipe. */
+            close(0);
+            dup(copy);
+            close(copy);
         }
     } 
 }
 
 
 int parse_input(char input[], char** argv) {
-    char* p = strchr(input, '\n');
-    if (p != NULL) {
-        *p = '\0';
-    }
-    char* token = strtok(input, " ");
+    //! \n\r 是Linux下的回车键 而非\n
+    char* token = strtok(input, " \n\r");
     int i = 0;
     while (token != NULL) {
         argv[i++] = token;
-        token = strtok(NULL, " ");
+        token = strtok(NULL, " \n\r");
     }
     argv[i] = NULL;
     return i;
