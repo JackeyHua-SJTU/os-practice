@@ -1,13 +1,13 @@
 all: pipe fork copy
 
 pipe: PipeCopy.c
-	gcc PipeCopy.c -o PipeCopy
+	gcc PipeCopy.c -o PipeCopy -D$(MACRO)
 
 fork: ForkCopy.c 
-	gcc ForkCopy.c -o ForkCopy
+	gcc ForkCopy.c -o ForkCopy -D$(MACRO)
 
 copy: MyCopy.c
-	gcc MyCopy.c -o MyCopy
+	gcc MyCopy.c -o MyCopy -D$(MACRO)
 
 clean:
 	rm MyCopy ForkCopy PipeCopy
