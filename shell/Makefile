@@ -1,7 +1,22 @@
-all: shell
+all: shell server ls wc cat pwd
 
 shell: shell.c
 	gcc shell.c -o shell
 
+server: shell_server.c
+	gcc shell_server.c -o server -Wno-format-truncation -Wno-format
+
+ls: ls.c
+	gcc ls.c -o ls -Wno-format
+
+wc: wc.c
+	gcc wc.c -o wc
+
+cat: cat.c
+	gcc cat.c -o cat
+
+pwd: pwd.c
+	gcc pwd.c -o pwd
+
 clean:
-	rm -f shell
+	rm -f shell server ls wc pwd cat

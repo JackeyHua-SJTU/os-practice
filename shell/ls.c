@@ -40,7 +40,7 @@ void list_files(const char *path, int parameters) {
             }
 
             // metadata
-            printf("%s ", (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
+            printf("%s", (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
             printf((fileStat.st_mode & S_IRUSR) ? "r" : "-");
             printf((fileStat.st_mode & S_IWUSR) ? "w" : "-");
             printf((fileStat.st_mode & S_IXUSR) ? "x" : "-");
@@ -73,8 +73,10 @@ void list_files(const char *path, int parameters) {
         // file name
         printf("%s\n", entry->d_name);
     }
+    if (parameters == DASH_L) {
+        printf("total %ld\n", total);
+    }
 
-    printf("total %ld\n", total);
     closedir(dir);
 }
 
@@ -84,6 +86,11 @@ int main(int argc, char** argv) {
         * Support `ls` `ls -a` `ls -l` `ls $path`
         ! Any other form will be considered invalid
     */
+    // printf("argc: %d\n", argc);
+    // for (int i = 0; i < argc; i++) {
+    //     printf("%s\n", argv[i]);
+    // }
+
     if (argc > 2) {
         printf("Too many arguments\n");
         return 1;
@@ -98,7 +105,8 @@ int main(int argc, char** argv) {
     } else if (strcmp(argv[1], "-l") == 0) {
         list_files(".", DASH_L);
     } else {
-        printf("Invalid argument\n");
+        list_files(argv[1], NO_ARGS);
+        // printf("Invalid argument\n");
     }
     
     return 0;

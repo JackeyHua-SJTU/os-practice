@@ -21,11 +21,14 @@ void init_name_and_path(char[], char[]);
 int parse_input(char[], char**);
 void exec(char**, int, int);
 
+char wd[MAX_PATH];  // this is the path of this file, intended to find the exe even if we cd to a different directory
 
 int main() {
     char name[MAX_NAME];
     char path[MAX_PATH];
     char input[MAX_INPUT];
+    
+    getcwd(wd, MAX_PATH);
     init_name_and_path(name, path);
     
     while (1) {
@@ -78,6 +81,7 @@ void exec(char** argv, int lb, int rb) {
         }
     }
     // printf("possible_right: %d\n", possible_right);
+    /* possible_right = -1 means there is no pipe, run it */
     if (possible_right == -1) {
         pid_t pid = fork();
         if (pid == -1) {
@@ -86,10 +90,8 @@ void exec(char** argv, int lb, int rb) {
         } else if (pid == 0) {
             int ret;
             if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0) {
-                char tmp[MAX_PATH];
-                getcwd(tmp, MAX_PATH);
                 char concat[MAX_PATH + 10];
-                sprintf(concat, "%s/%s", tmp, argv[lb]);
+                sprintf(concat, "%s/%s", wd, argv[lb]);
                 argv[lb] = concat;
                 ret = execv(argv[lb], argv + lb);
             } else {
@@ -103,6 +105,7 @@ void exec(char** argv, int lb, int rb) {
             wait(0);
         }
     } else { 
+        /* There is a pipe, and [lb, possible_right] is the left part of the pipe */
         int p[2];
         pipe(p);
         pid_t pid = fork();
@@ -121,14 +124,11 @@ void exec(char** argv, int lb, int rb) {
             // new_argv[possible_right - lb] = NULL;
             argv[possible_right] = NULL;
             int ret;
-            if (strcmp(argv[lb], PWD) == 0) {
-                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/pwd", argv + lb);
-            } else if (strcmp(argv[lb], WC) == 0) {
-                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/wc", argv + lb);
-            } else if (strcmp(argv[lb], CAT) == 0) {
-                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/cat", argv + lb);
-            } else if (strcmp(argv[lb], LS) == 0) {
-                ret = execv("/home/parallels/Desktop/cs2303/proj1/shell/ls", argv + lb);
+            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0) {
+                char concat[MAX_PATH + 10];
+                sprintf(concat, "%s/%s", wd, argv[lb]);
+                argv[lb] = concat;
+                ret = execv(argv[lb], argv + lb);
             } else {
                 ret = execvp(argv[lb], argv + lb);
             }
