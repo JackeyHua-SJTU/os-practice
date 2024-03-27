@@ -17,11 +17,12 @@ int main() {
     clock_t start = clock();
     mergesort(arr, 0, size - 1);
     clock_t end = clock();
-    printf("Time: %f\n", (double) (end - start) / CLOCKS_PER_SEC);
-    for (int i = 0; i < size; i++) {
-        printf("%d ", arr[i]);
-    }
-    printf("\n");
+    printf("Single thread merge sort takes : %f ms\n", (double) (end - start) / CLOCKS_PER_SEC * 1000.0);
+    free(arr);
+    // for (int i = 0; i < size; i++) {
+    //     printf("%d ", arr[i]);
+    // }
+    // printf("\n");
     return 0;
 }
 

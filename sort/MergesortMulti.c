@@ -15,7 +15,7 @@ struct thread_args {
 void* thread_function(void* args) {
     struct thread_args* targs = (struct thread_args*) args;
     mergesort(targs->arr, targs->lb, targs->rb);
-    return NULL;
+    pthread_exit(NULL);
 }
 
 int main() {
@@ -29,11 +29,12 @@ int main() {
     clock_t start = clock();
     mergesort(arr, 0, size - 1);
     clock_t end = clock();
-    printf("Time: %f\n", (double) (end - start) / CLOCKS_PER_SEC);
-    for (int i = 0; i < size; i++) {
-        printf("%d ", arr[i]);
-    }
-    printf("\n");
+    printf("Multi thread takes : %f ms \n", (double) (end - start) / CLOCKS_PER_SEC * 1000.0);
+    // for (int i = 0; i < size; i++) {
+    //     printf("%d ", arr[i]);
+    // }
+    // printf("\n");
+    free(arr);
     return 0;
 }
 
