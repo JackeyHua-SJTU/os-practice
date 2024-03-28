@@ -14,7 +14,7 @@ def run(size, flag):
         process = subprocess.run("./MergesortSingle", shell=True, check=True, input=cpp_input, text=True)
 
 if __name__ == "__main__":
-    size = random.randint(2000, 10000)
+    size = random.randint(200, 1000)
     multi = int(input("0 for single thread, 1 for multi-thread: "))
     for _ in range(10):
         run(size, multi)

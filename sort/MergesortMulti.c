@@ -39,17 +39,40 @@ int main() {
 }
 
 void mergesort(int* arr, int lb, int rb) {
-    pthread_t thread1, thread2;
     if (lb >= rb) return;
+    
+    pthread_t thread1, thread2;
+    pthread_attr_t attr1, attr2;
+    pthread_attr_init(&attr1);
+    pthread_attr_init(&attr2);
+    pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setscope(&attr1, PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_setscope(&attr2, PTHREAD_SCOPE_SYSTEM);
+
     int mid = lb + (rb - lb) / 2;
     struct thread_args targs1 = {arr, lb, mid};
     struct thread_args targs2 = {arr, mid + 1, rb};
-    pthread_create(&thread1, NULL, thread_function, &targs1);
+    int rc1 = pthread_create(&thread1, NULL, thread_function, &targs1);
+    if (rc1) {
+        printf("Error: return code from pthread_create() is %d\n", rc1);
+        exit(-1);
+    }
     // mergesort(arr, lb, mid);
-    pthread_create(&thread2, NULL, thread_function, &targs2);
+    int rc2 = pthread_create(&thread2, NULL, thread_function, &targs2);
+    if (rc2) {
+        printf("Error: return code from pthread_create() is %d\n", rc2);
+        exit(-1);
+    }
     // mergesort(arr, mid + 1, rb);
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+    rc1 = pthread_join(thread1, NULL);
+    rc2 = pthread_join(thread2, NULL);
+    
+    if (rc1 || rc2) {
+        printf("Error: return code from pthread_join() is %d %d\n", rc1, rc2);
+        exit(-1);
+    }
+
     merge(arr, lb, rb);
 }
 
