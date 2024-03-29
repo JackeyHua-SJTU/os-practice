@@ -1,4 +1,4 @@
-all: shell server ls wc cat pwd
+all: shell server ls wc cat pwd rm
 
 shell: shell.c
 	gcc shell.c -o shell
@@ -18,5 +18,8 @@ cat: cat.c
 pwd: pwd.c
 	gcc pwd.c -o pwd
 
+rm: rm.c
+	gcc rm.c -o rm
+
 clean:
-	rm -f shell server ls wc pwd cat
+	rm -f shell server ls wc pwd cat rm

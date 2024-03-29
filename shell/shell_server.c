@@ -23,6 +23,7 @@ const char* PWD = "pwd";
 const char* WC = "wc";
 const char* CAT = "cat";
 const char* LS = "ls";
+const char* RM = "rm";
 
 void init_name_and_path(char[], char[]);
 int parse_input(char[], char**);
@@ -168,7 +169,7 @@ void exec(char** argv, int lb, int rb, int clientfd) {
             dup2(clientfd, 2);
             
             int ret;
-            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0) {
+            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0 || strcmp(argv[lb], RM) == 0) {
                 char concat[MAX_PATH + 10];
                 sprintf(concat, "%s/%s", wd, argv[lb]);
                 argv[lb] = concat;
@@ -204,7 +205,7 @@ void exec(char** argv, int lb, int rb, int clientfd) {
             // new_argv[possible_right - lb] = NULL;
             argv[possible_right] = NULL;
             int ret;
-            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0) {
+            if (strcmp(argv[lb], PWD) == 0 || strcmp(argv[lb], WC) == 0 || strcmp(argv[lb], CAT) == 0 || strcmp(argv[lb], LS) == 0 || strcmp(argv[lb], RM) == 0) {
                 char concat[MAX_PATH + 10];
                 sprintf(concat, "%s/%s", wd, argv[lb]);
                 argv[lb] = concat;

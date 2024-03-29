@@ -20,7 +20,7 @@ int main() {
         }
     }
 
-    printf("\t%d\t%d\t%d\n", line, word, cnt);
+    printf("     %d     %d     %d\n", line, word, cnt);
 
     return 0;
 }

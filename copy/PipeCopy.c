@@ -41,7 +41,6 @@ int main(int argc, char* argv[]) {
             printf("Fork failed\n");
             exit(-1);
         } else if (pid2 == 0) {
-            printf("Child started copying.\n");
             FILE* dst;
             dst = fopen(dst_name, "w+");
             if (dst == NULL) {
@@ -78,15 +77,14 @@ int main(int argc, char* argv[]) {
             printf("Error copying\n");
             exit(-1);
         }
-        printf("Child has finished copying.\n");
         #ifdef TIME1
         clock_t end = clock();
         double time_spent = ((double)end - start) / CLOCKS_PER_SEC * 1000.0;
-        printf("Fork Copy takes : %f ms\n", time_spent);
+        printf("Pipe Copy takes : %f ms\n", time_spent);
         #elif TIME2 
         gettimeofday(&end, &tz);
         long seconds = end.tv_usec - start.tv_usec;
-        printf("Fork Copy takes : %f ms \n", seconds / 1000.0);
+        printf("Pipe Copy takes : %f ms \n", seconds / 1000.0);
         #endif
     }
 

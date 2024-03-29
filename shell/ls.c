@@ -1,10 +1,13 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <string.h>
 #include <pwd.h>
 #include <grp.h>
+#include <unistd.h>
 
 #define NO_ARGS 0
 #define DASH_A 1
@@ -30,14 +33,15 @@ void list_files(const char *path, int parameters) {
         }
         if (parameters == DASH_L) {
             struct stat fileStat;
-            struct passwd *pw = getpwuid(fileStat.st_uid);
-            struct group  *gr = getgrgid(fileStat.st_gid);
-            total += fileStat.st_blocks;
 
             if (stat(entry->d_name, &fileStat) < 0) {
                 perror("Error getting file stats");
                 continue;
             }
+
+            struct passwd *pw = getpwuid(fileStat.st_uid);
+            struct group  *gr = getgrgid(fileStat.st_gid);
+            total += fileStat.st_blocks;
 
             // metadata
             printf("%s", (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
@@ -73,8 +77,29 @@ void list_files(const char *path, int parameters) {
         // file name
         printf("%s\n", entry->d_name);
     }
+    // get the total `num` of ls -l
     if (parameters == DASH_L) {
-        printf("total %ld\n", total);
+        int p[2];
+        pipe(p);
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("Error forking");
+            return;
+        } else if (pid == 0) {
+            close(p[0]);
+            dup2(p[1], 1);
+            close(p[1]);
+            execvp("ls", (char *[]){"ls", "-l", NULL});
+        } else {
+            wait(NULL);
+            close(p[1]);
+            char buffer[1024];
+            FILE* stream = fdopen(p[0], "r");
+            if (fgets(buffer, sizeof(buffer), stream) != NULL) {
+                printf("%s", buffer);
+            }
+            fclose(stream);
+        }
     }
 
     closedir(dir);

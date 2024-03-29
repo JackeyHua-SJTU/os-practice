@@ -39,7 +39,6 @@ int main(int argc, char* argv[]) {
     gettimeofday(&start, &tz);
     #endif
     copy(src, dst);
-    printf("Successful copy\n");
     #ifdef TIME1
     clock_t end = clock();
     double time_spent = ((double)end - start) / CLOCKS_PER_SEC * 1000.0;
