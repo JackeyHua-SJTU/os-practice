@@ -1,5 +1,5 @@
 # Project 1 
-
+Check my [Github page](https://github.com/JackeyHua-SJTU/os-practice) for full dev history.
 ## Structure
 ```bash
 .
