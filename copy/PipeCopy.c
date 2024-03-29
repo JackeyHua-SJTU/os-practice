@@ -34,7 +34,10 @@ int main(int argc, char* argv[]) {
         exit(-1);
     } else if (pid == 0) {
         int p[2];
-        pipe(p);
+        if (pipe(p) < 0) {
+            printf("Pipe failed\n");
+            exit(-1);
+        }
         char buf[BUF_SIZE];
         pid_t pid2 = fork();
         if (pid2 < 0) {

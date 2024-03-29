@@ -34,6 +34,10 @@ char wd[MAX_PATH];  // this is the path of this file, intended to find the execu
 
 int main(int argc, char** argv) {
     getcwd(wd, MAX_PATH);
+    if (argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
     int port = atoi(argv[1]);
     int optval = 1;
 
@@ -75,9 +79,15 @@ int main(int argc, char** argv) {
             perror("accept");
             continue;
         }
-
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            close(clientfd);
+            close(sockfd);
+            exit(EXIT_FAILURE);
+        }
         // Handle the client connection in a new process
-        if (fork() == 0) {
+        if (pid == 0) {
             printf("New child process (seq #%d)\n", i);
         
             close(sockfd);  // The child process does not need the listening socket
