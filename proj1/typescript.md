@@ -1,7 +1,7 @@
 # Type script of the project
 
 ## Compile
-If you are at the current directory `proj1/`, you can compile via `make MACRO=TIME1` or `make MACRO=TIME2` to compile the project with the `TIME1` or `TIME2` macro defined respectively. `TIME1` and `TIME2` defines diffenrent time macros for copy project.
+If you are at the current directory `proj1/`, you can compile via `make MACRO=TIME1` or `make MACRO=TIME2` to compile the project with the `TIME1` or `TIME2` macro defined respectively. `TIME1` and `TIME2` defines different time macros for copy project.
 
 If you are at `proj1/shell` or `proj1/sort`, you can just call `make` to compile.
 
@@ -103,21 +103,22 @@ My tiny shell has implemented the following commands. **Any of commands not list
 
 #### Special note
 - At first, i implement a pure local shell, which does not support socket communication. You can find the source code in `shell.c`. Then i migrate the code to `shell_server.c` and add socket communication. Both can run.
-- The server side will not exit until you press `Ctrl+C`. The client side will exit if you type `exit`.
+- The server side will not exit **UNTIL** you press `Ctrl+C`. The client side will exit if you type `exit`.
 - I search the web for the first line of `ls -l` in Linux original shell (for example, total 128). It is said that the number is the total blocks, but when i calculate the sum of blocks via C API, it does not correspond to the number. So i just print the number directly via Linux shell.
 - It is said that the last column of `wc` is the byte counts of the file. But it is wield that `ls -l | wc | wc` and `ls -l | wc | wc | wc` will output the same result `     1       3      24`. I can not figure out why the latter one has 24 byte counts. I just simply count the byte of the input/file.
+- The port can be reused. If the previous server used port 8080, the next server can still use port 8080.
 
 ### Error Handling
 In this project, i mainly use `perror` to print the error message. So i just list the error that will be thrown into `perror`.
-- `fork`
-- `pipe`
-- `execvp`
-- `socket`
-- `bind`
-- `listen`
-- `accept`
-- `setsockopt`
-- `cd`
+- `fork`: in forking a child process
+- `pipe`: in creating pipe to communicate
+- `execvp`: in executing a command
+- `socket`: in creating a socket
+- `bind`: in binding a socket
+- `listen`: in listening a socket
+- `accept`: in accepting a connection
+- `setsockopt`: in setting socket options
+- `cd`: in changing directory
 
 And there are several manually handled errors.
 - If the server is called with `argc != 2`, it will print the following message.

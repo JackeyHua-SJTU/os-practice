@@ -1,0 +1,212 @@
+\section{copy}
+\subsection{Description}
+First, we need to write a copy file using C API \texttt{read} and \texttt{write}. The program should be able to copy a file from one location to another. 
+I use the buffer size of 100.
+
+Then, we need to use \texttt{fork} to create a child process and use \texttt{execl} to call the \texttt{MyCopy} program to copy the file. The parent process will wait for
+the child to finish.
+
+Last, we need to use \texttt{pipe} to realize file copying. We first fork a child process,
+and then in the child process, we fork another one. The child will open the file and write to 
+pipe, and the grandchild will read from the pipe, and write them to the destination file.
+
+\subsection{Usage}
+To compile the sub project, we can change the directory to \texttt{proj1/copy} and run \texttt{make MACRO={TIME1, TIME2}}.
+
+To run the program, we can use \texttt{./copy <srcpath> <dstpath>} to copy the file from src to dst.
+
+More details, please refer to the type script of Project 1.
+
+\subsection{Trick}
+I use conditional compilation to control the output of the time. 
+I use \texttt{TIME1} macro to signal the use of \texttt{clock()} to count time.
+I use \texttt{TIME2} macro to signal the use of \texttt{gettimeofday()} to count time.
+And then i use \texttt{\#ifdef TIME1} and \texttt{\#elif TIME2} to control the output of the time.
+
+That is why we need to state the macro when compiling via make.
+
+\subsection{Result}
+I use \texttt{copy/test.py} to run automatic tests. It will compare the three copy methods
+on same configuration, namely macro and size of source file. Then, it will change the size of the source file and 
+check the trend of the time.
+
+The result is plotted by matplotlib and saved in \texttt{copy/plot1.png} for \texttt{TIME1} and \texttt{copy/plot2.png} for \texttt{TIME2}. 
+Check Figurec\ref{fig:copy1} and Figure \ref{fig:copy2} for the result.
+
+% \begin{figure}[!h]
+%     \centering
+%     \includegraphics[width=0.6\textwidth]{plot1.png}
+%     \caption{Time of copy with \texttt{clock()}}
+%     \label{fig:copy1}
+% \end{figure}
+
+% \begin{figure}[!h]
+%     \centering
+%     \includegraphics[width=0.6\textwidth]{plot2.png}
+%     \caption{Time of copy with \texttt{gettimeofday()}}
+%     \label{fig:copy2}
+% \end{figure}
+\begin{figure}[!h]
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot1.png}
+        \caption{Time of copy with \texttt{clock(), buffer size = 100}}
+        \label{fig:copy1}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot2.png}
+        \caption{Time of copy with \texttt{gettimeofday()}, buffer size = 100}
+        \label{fig:copy2}
+    \end{minipage}
+\end{figure}
+
+Then, i perform the test again under buffer size = 1024 and 2048.
+Check Figure \ref{fig:copy3} and Figure \ref{fig:copy4} for the result of buffer size = 1024.
+Check Figure \ref{fig:copy5} and Figure \ref{fig:copy6} for the result of buffer size = 2048.
+
+\begin{figure}[!h]
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot1_1024.png}
+        \caption{Time of copy with \texttt{clock(), buffer size = 1024}}
+        \label{fig:cop3}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot2_1024.png}
+        \caption{Time of copy with \texttt{gettimeofday()}, buffer size = 1024}
+        \label{fig:copy4}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[!h]
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot1_2048.png}
+        \caption{Time of copy with \texttt{clock(), buffer size = 2048}}
+        \label{fig:copy5}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{plot2_2048.png}
+        \caption{Time of copy with \texttt{gettimeofday()}, buffer size = 2048}
+        \label{fig:copy6}
+    \end{minipage}
+\end{figure}
+
+As is depicted above, we can see that the time recorded by \texttt{clock()} fluctuates a lot, while the time recorded by \texttt{gettimeofday()} is comparatively more stable.
+This is possibly due to the fact that \texttt{clock()} returns the processor time and \texttt{gettimeofday()} returns the system time.
+And i prefer to believe that the latter one is more precise.
+
+We can see from the figures of \texttt{clock()} method that in general, MyCopy takes the longest time and the rest two have comparable performance.
+It is actually really wield, because ForkCopy use MyCopy to realize the function, but it is faster than MyCopy. I guess that is because the overhead of fork is not that large and that 
+when testing ForkCopy, the src and dst file are in the cache, which makes the copy faster. It is also wield that PipeCopy is obviously faster than MyCopy, 
+they nearly use the same way, both via read and write to a particular file descriptor. And the former one needs additional time to create a pipe.
+I guess that is because pipe has better performance than function calling in MyCopy and fork and pipe have been systematically optimized.
+We do not see regular and obvious change in time when buffer size changes. 
+
+Then, we focus on the result of \texttt{gettimeofday()} method, which is much more stable.
+First, we can obviously see that MyCopy has less time than PipeCopy, and PipeCopy has less time than ForkCopy. It corresponds to the analysis above. ForkCopy calls MyCopy, so it should be slower.
+PipeCopy needs time to establish a pipe, so it also should be slower than MyCopy. We can also see that time of copy will be more stable when buffer size grows.
+I think the reason is that it fully utilize the pages of OS. Typically the page is 4KB. 100 is not a factor of 4096, while 1024 and 2048 are. So in buffer size 100, we see greate fluctuation, because 
+it can not perfectly fill a page. But in buffer size 1024 and 2048, not only can it fill a page, but also can it hold more data, which makes the time more stable.
+We can also find that there always exists an outlier in PipeCopy, but not in MyCopy and ForkCopy. 
+I guess that is possibly due to the mechanism of pipe and blocking I/O. When the pipe buffer is full, the writer may be blocked and put to sleep. Same happens to the readers when the buffer is empty.
+Then wake up the writer or reader will take additional time and context switch. That is why we see the outlier in PipeCopy.
+
+\section{shell}
+There is no performance test in the sub project, so i will just share some of the tricks.
+\subsection{Description}
+We need to write a program that mimic Linux shell, supports some of frequently used commands, such as \texttt{ls}, \texttt{pwd}, and then 
+make it a server and client program. The server will receive the command from client and execute it, then send the result back to the client.
+
+\subsection{Usage}
+To compile the sub project, we can change the directory to \texttt{proj1/shell} and run \texttt{make}.
+
+To run the program, we can use \texttt{./server <port>} to run the server program and \texttt{telnet localhost <port>} to connect to the server.
+After connection, a shell that really looks like bash will appear, check Figure \ref{fig:shell} for the screenshot. I choose the color that is same to the bash. You can 
+differentiate the program with bash by the path, if the path starts with \texttt{\~}, then it is bash, otherwise it is the shell program.
+Then, you can type any commands and the server will execute it and send the result back to the client.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{shell.png}
+    \caption{Screenshot of shell}
+    \label{fig:shell}
+\end{figure}
+
+\subsection{Trick}
+The pipeline of this shell is that, we first read the input from the client, then parse the input into separate commands, and check whether it is \texttt{exit} or \texttt{cd}.
+If it is, then we will exit the program or change the directory. 
+Otherwise, the parameters will be passed to my \texttt{exec} function.
+It will check whether there is a pipe in the command. 
+If not, it will call \texttt{execvp} or \texttt{execv} based on whether the command is a self supported one (Typically, ls, pwd, rm, cat, wc).
+If so, it will call my version of implementation, otherwise it will directly use the Linux system call for robustness.
+It is worth noting that we need to set the standard output and standard error to be client file descriptor, so that the result can be sent back to the client.
+If there is a pipe, it will fork another child process that deal with the left part of pipe, and the parent process will recursively call \texttt{exec} to deal with the right part of pipe.
+They will communicate via pipe and file descriptor redirection.
+
+In order to reuse the port, i set the \texttt{SO\_REUSEADDR} option to the socket.
+
+There are one main bugs that puzzles me, which is worth learning.
+The carriage return in Linux is \texttt{\textbackslash n\textbackslash r}. It is \textbf{not} \texttt{\textbackslash n}.
+It leads to the error in arguments parsing, and can not see any differences when printing the parsed argument array.
+
+\subsection{Reflection}
+Shell is nothing more than a program running in infinite loop, parsing user input and calling corresponding executable to deal with.
+This sub project makes me realize that we can easily design a personalized shell.
+
+The design of file descriptor is also brilliant. It masks the source or destination of operation. So it gains generality.
+
+\section{sort}
+\subsection{Description}
+We need to write merge sort both in single thread and multi thread (using PThreads API).
+
+\subsection{Usage}
+To compile the sub project, we can change the directory to \texttt{proj1/sort} and run \texttt{make}.
+
+To run the program, we can use \texttt{./MergesortSingle < <input data> > <output data>} and 
+\texttt{./MergesortMulti < <input data> > <output data>}.
+Here, we use redirection via \texttt{<} and \texttt{>}, because we rely on \texttt{scanf} to read the 
+size of array and the elements of array.
+
+\subsection{Result}
+I use \texttt{sort/script.py} to run automatic tests. It will compare the two methods on same configuration, namely size of array.
+Then, it will change the size of the array and check the trend of the time.
+
+The result is plotted by matplotlib and saved in \texttt{sort/plot.png}. Check Figure \ref{fig:sort} for the result.
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{sort.png}
+    \caption{Time of sort}
+    \label{fig:sort}
+\end{figure}
+
+We can see two obvious trend. The time or sort grows as the size of array increases, which is intuitive.
+And the time of multi thread is much greater than the single thread. 
+Before analysis, i need to state how this program utilize multi process. 
+When given an array, it will divide the array into two parts in the middle, and then create two threads to sort the two parts. Then it will recursively call itself until the array has size 1.
+I guess there are two main reasons that multi thread is slower than single thread.
+\textbf{The first reason} is that the parallels desktop of my Macbook Pro only has 2 process, namely \texttt{`nproc` = 2}, but the array size is very big, which may 
+use more than 10 threads (corresponding to size 1024). So the system need to switch the context frequently, which will take additional time.
+\textbf{The second reason} is that the creation and join of thread will take additional time. And the system need to allocate more memory for the threads, which will also take time.
+
+And i guess there is possibly another reason. Merge sort here is not a typical multi thread program. By typical, i mean that we can assign the number
+of thread in advance and divide tasks fairly to each thread, E.g. matrix multiplication. But here, the number of thread is actually dynamic. In every round
+of recursion, we assign two threads to sort the two parts. And given that the number of thread supported by the VM is only 2, there is a huge number of 
+context switch, so the early thread has to 
+wait for a long time for the later thread to finish. 
+
+I do another test to check whether the first or the second reason has more influence. I change the size of array to [2, 10] with gap size 2. This is corresponding to the number of thread supported by
+my virtual machine. The result is plotted in Figure \ref{fig:sort2}. We can see that still again the time of multi thread is greater than the single thread. So i think the second reason has more influence.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{sort_2.png}
+    \caption{Time of sort with size [2, 10]}
+    \label{fig:sort2}
+\end{figure}
+
+So practically speaking, we should avoid using more multi thread than the number of process supported by the system. And we should also avoid using multi thread when the size of array is too small
+ because the overhead of creation and join of multi thread is huge.
