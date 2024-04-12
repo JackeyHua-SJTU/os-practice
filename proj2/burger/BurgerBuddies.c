@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #define SLEEP 3         // set sleep time
+#define MAXSIZE 100
 
 typedef struct {
     u_int8_t id;        // 服务当前客户的服务员id
@@ -90,53 +91,119 @@ int main(int argc, char** argv) {
     int numCustomers = atoi(argv[3]);
     int numRacks = atoi(argv[4]);
 
+    if (numCooks <= 0 || numCashiers <= 0 || numCustomers <= 0 || numRacks <= 0) {
+        printf("Invalid input.\n");
+        exit(1);
+    }
+
+    if (numCooks > MAXSIZE || numCashiers > MAXSIZE || numCustomers > MAXSIZE || numRacks > MAXSIZE) {
+        printf("Too many cooks/cashiers/customers/racks. Risks of threads number overflow.\n");
+        exit(1);
+    }
+
+    if (pthread_mutex_init(&mutex, NULL) != 0) {
+        printf("Failed to init mutex.\n");
+        exit(1);
+    }
+
     printf("Cooks [%d], Cashiers [%d], Customers [%d], Rack[%d]\n", numCooks, numCashiers, numCustomers, numRacks);
     printf("Begin run.\n\n");
 
-    sem_init(&sem_cashier, 0, 0);
-    sem_init(&sem_rack, 0, 0);
-    sem_init(&sem_customer, 0, 0);
-    sem_init(&sem_vacant, 0, numRacks);
-    sem_init(&sem_customer_private, 0, 1);
+    if (sem_init(&sem_cashier, 0, 0) == -1) {
+        printf("Failed to init sem_cashier.\n");
+        exit(1);
+    }
+    if (sem_init(&sem_rack, 0, 0) == -1) {
+        printf("Failed to init sem_rack.\n");
+        exit(1);
+    }
+    if (sem_init(&sem_customer, 0, 0) == -1) {
+        printf("Failed to init sem_customer.\n");
+        exit(1);
+    }
+    if (sem_init(&sem_vacant, 0, numRacks) == -1) {
+        printf("Failed to init sem_vacant.\n");
+        exit(1);
+    }
+    if (sem_init(&sem_customer_private, 0, 1) == -1) {
+        printf("Failed to init sem_customer_private.\n");
+        exit(1);
+    }
 
     pthread_t cooks[numCooks], cashiers[numCashiers], customers[numCustomers];
     int ids[numCooks + numCashiers + numCustomers];
 
     for(int i = 0; i < numCooks; i++) {
         ids[i] = i + 1;
-        pthread_create(&cooks[i], NULL, cook, &ids[i]);
+        if (pthread_create(&cooks[i], NULL, cook, &ids[i]) != 0) {
+            printf("Failed to create cook thread #%d\n", i);
+            exit(1);
+        }
     }
 
     for(int i = 0; i < numCashiers; i++) {
         ids[numCooks + i] = i + 1;
-        pthread_create(&cashiers[i], NULL, cashier, &ids[numCooks + i]);
+        if (pthread_create(&cashiers[i], NULL, cashier, &ids[numCooks + i]) != 0) {
+            printf("Failed to create cashier thread #%d\n", i);
+            exit(1);
+        }
     }
 
     for(int i = 0; i < numCustomers; i++) {
         ids[numCooks + numCashiers + i] = i + 1;
-        pthread_create(&customers[i], NULL, customer, &ids[numCooks + numCashiers + i]);
+        if (pthread_create(&customers[i], NULL, customer, &ids[numCooks + numCashiers + i]) != 0) {
+            printf("Failed to create customer thread #%d\n", i);
+            exit(1);
+        }
     }
 
     for (int i = 0; i < numCustomers; i++) {
-        pthread_join(customers[i], NULL);
+        if (pthread_join(customers[i], NULL) != 0) {
+            printf("Failed to join customer thread #%d\n", i);
+            exit(1);
+        }
     }
 
     printf("\nAll customers have left, DONE.\n");
 
     for (int i = 0; i < numCashiers; ++i) {
-        pthread_cancel(cashiers[i]);
+        if (pthread_cancel(cashiers[i]) != 0) {
+            printf("Failed to cancel cashier thread #%d\n", i);
+            exit(1);
+        }
     }
 
     for (int i = 0; i < numCooks; ++i) {
-        pthread_cancel(cooks[i]);
+        if (pthread_cancel(cooks[i]) != 0) {
+            printf("Failed to cancel cook thread #%d\n", i);
+            exit(1);
+        }
     }
 
-    sem_destroy(&sem_cashier);
-    sem_destroy(&sem_rack);
-    sem_destroy(&sem_customer);
-    sem_destroy(&sem_vacant);
-    sem_destroy(&sem_customer_private);
-    pthread_mutex_destroy(&mutex);
+    if (sem_destroy(&sem_cashier) == -1) {
+        printf("Failed to destroy sem_cashier.\n");
+        exit(1);
+    }
+    if (sem_destroy(&sem_rack) == -1) {
+        printf("Failed to destroy sem_rack.\n");
+        exit(1);
+    }
+    if (sem_destroy(&sem_customer) == -1) {
+        printf("Failed to destroy sem_customer.\n");
+        exit(1);
+    }
+    if (sem_destroy(&sem_vacant) == -1) {
+        printf("Failed to destroy sem_vacant.\n");
+        exit(1);
+    }
+    if (sem_destroy(&sem_customer_private) == -1) {
+        printf("Failed to destroy sem_customer_private.\n");
+        exit(1);
+    }
+    if (pthread_mutex_destroy(&mutex) != 0) {
+        printf("Failed to destroy mutex.\n");
+        exit(1);
+    }
 
     return 0;
 }
