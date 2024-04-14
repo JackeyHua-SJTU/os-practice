@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define SLEEP 3         // set sleep time
+#define SLEEP 5         // set sleep time
 #define MAXSIZE 100
 
 typedef struct {
@@ -27,17 +27,17 @@ cashier_arg_t cashier_cur;  // 用来记录当前的服务员，需上 sem_custo
 
 void* cook(void* arg) {
     while(1) {
-        sem_wait(&sem_vacant);
+        sem_wait(&sem_vacant);  // 等待有空位
         sleep(rand() % SLEEP);  // 制作汉堡的随机延时
         printf("Cook [%d] cooks a burger and puts it into the rack.\n", *(int*)arg);
-        sem_post(&sem_rack);
+        sem_post(&sem_rack);    // 制作完成，放入rack
     }
 }
 
 void* cashier(void* arg) {
     while(1) {
-        sem_wait(&sem_customer);
-        pthread_mutex_lock(&mutex);
+        sem_wait(&sem_customer);    // 等待有顾客到来
+        pthread_mutex_lock(&mutex); // 上锁，修改当前服务员的信息，记录在cashier_cur中
         int cashier_id = *(int*)arg;
         cashier_arg_t cash;
         cash.id = cashier_id;
@@ -51,14 +51,15 @@ void* cashier(void* arg) {
         cashier_cur = cash;
         pthread_mutex_unlock(&mutex);
         /* 在申明自己可以提供服务之前，修改服务员的信息，用于和客户之间进行同步 */
-        sem_post(&sem_cashier);
+        sem_post(&sem_cashier); // 修改完毕，申明自己可以提供服务了
         sem_wait(&food);        // 等用户点单
         printf("Cashier [%d] accepts an order.\n", *(int*)arg);
-        sem_wait(&sem_rack);
+        sem_wait(&sem_rack);    // 等待有汉堡
+        sleep(rand() % SLEEP);  // 服务的随机延时
         printf("Cashier [%d] takes a burger from the rack to the customer.\n", *(int*)arg);
         sem_post(&serve);       // 申明自己已经上餐了，等待客户拿走
         sem_wait(&takeaway);    // 等客户拿走
-        sem_post(&sem_vacant);
+        sem_post(&sem_vacant);  // 顾客拿走后，rack空位加一
         sem_destroy(&food);
         sem_destroy(&takeaway);
         sem_destroy(&serve);
@@ -69,14 +70,15 @@ void* customer(void* arg) {
         cashier_arg_t cur;
         printf("Customer [%d] comes.\n", *(int*)arg);
         sem_wait(&sem_customer_private);    // 获取收银员的信息，必须上锁避免信息被覆盖或者修改
-        sem_post(&sem_customer);
-        sem_wait(&sem_cashier);
+        sem_post(&sem_customer);            // 申明自己已经到来，等待收银员服务
+        sem_wait(&sem_cashier);             // 等待收银员服务
         cur = cashier_cur;
         printf("Customer [%d] is being served by cashier [%d].\n", *(int*) arg, cur.id);
+        sleep(rand() % SLEEP);              // 点单的随机延时
         sem_post(cur.order);        // 点单
         sem_post(&sem_customer_private);
         sem_wait(cur.served);       // 等服务员上餐
-        printf("Customer [%d] receives the burger and leaves.\n", *(int*)arg);
+        printf("Customer [%d] receives the burger from cashier [%d] and leaves.\n", *(int*)arg, cur.id);
         sem_post(cur.takeaway);     // 申明自己已经拿走了汉堡，服务员可以休息/服务下一个客户
 }
 

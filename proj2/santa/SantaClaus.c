@@ -27,7 +27,7 @@ int elvesBuf[NUM_ELVES_FOR_SANTA];                  // 存储需要帮助的三�
 int flag_r = 1;                                     // 在圣诞老人巡回结束后，必须9只驯鹿全部释放资源后，才能有新的驯鹿进来等待
 int flag_e = 1;                                     // 在圣诞老人帮完三个精灵后，必须三个精灵全部释放资源后，才能有新的精灵进来等待
 int flag_exit = 0;                                  // 当循环条件满足的时候，存在部分精灵仍在等待，需要手动的去释放
-int santa_end = 0;                                  // 当前正在接受圣诞老人服务的精灵/驯鹿必须等待圣诞老人结束后才可释放
+
 
 void* SantaClaus(void* arg) {
     while (1) {
@@ -37,9 +37,10 @@ void* SantaClaus(void* arg) {
             printf(YELLOW "Santa Claus DONE.\n" RESET);
             f = 1;
             flag_exit = 1;
-            /* 释放信号量资源，防止精灵忙等 */
+            /* 释放信号量资源，防止精灵和驯鹿忙等 */
             for (int i = 0; i < NUM_ELVES_FOR_SANTA; ++i) sem_post(&elfSem);
             for (int i = 0; i < NUM_ELVES; ++i) sem_post(&elfallow);
+            for (int i = 0; i < NUM_REINDEER; ++i) sem_post(&reindeerSem);
         }
         pthread_mutex_unlock(&mutex);
         if (f) break;
@@ -142,6 +143,11 @@ void* Reindeer(void* arg) {
         }
         pthread_mutex_unlock(&mutex);
         sem_wait(&reindeerSem);
+        int nf;
+        pthread_mutex_lock(&mutex);
+        nf = flag_exit;
+        pthread_mutex_unlock(&mutex);
+        if (nf) break;
         printf(GREEN "Reindeer %d getting hitched.\n" RESET, id);
         pthread_mutex_lock(&mutex);
         ++hitchedCount;
