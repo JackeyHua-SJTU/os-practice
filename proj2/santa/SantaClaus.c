@@ -7,7 +7,7 @@
 #define NUM_REINDEER 9
 #define NUM_ELVES 10
 #define NUM_ELVES_FOR_SANTA 3
-#define ROUNDS 3
+#define ROUNDS 30
 #define SLEEP 5
 #define RED "\x1B[31m"
 #define RESET "\x1B[0m"

@@ -84,11 +84,12 @@ All customers have left, DONE.
 
 In this case, there are more cashiers than customers and rack size greater than the number of customers.
 
-We can see the correct order of a customer and a cashier. First, customer comes, and then a cashier serves him. 
-After that, the customer orders a food. The cashier fetches the burger and gives it to the customer. 
+We can see the correct order of a customer-cashier pair. First, customer comes, and then a cashier serves him. 
+After that, the customer orders a food and then cashier will print that he has accepted an order. The cashier fetches the burger and gives it to the customer. 
 Finally, the customer takes the burger away and leaves.
 
 We can also see the interleaving of different customer-cashier pair. Because there are no contraints between different customer-cashier pairs.
+
 We can also see that the cook can make burgers concurrently, not being affected by the cashier or customer other than the rack size.
 
 So it is correct.
@@ -186,7 +187,13 @@ So it is correct.
 
 In this case, there are more customers than cashiers and rack size greater than the number of customers.
 
-The analysis is similar to the previous case. We can see customer waiting for the cashier. It is obvious that the output is correct.
+We can see that cooks can make burgers concurrently (line 26-29, line 35-37, line 51-54) because the rack size is enough big. They will not be blocked. 
+
+We can also see customer waiting for the cashier because cashier size is far smaller than the number of customers. (line 7-19)
+
+The rest part of the output is similar to the previous cases. Namely the order in a customer-cashier pair and interleaving of different customer-cashier pairs.
+
+It is obvious that the output is correct.
 
 \subsubsection{Case 3}
 
@@ -227,10 +234,21 @@ All customers have left, DONE.
 
 In this case, there are more cooks than the rack size. We can obviously see
 that the cook is blocked by the rack size. And cashier is waiting for the burger.
+
+The rest part of the output is similar to the previous cases. Namely the order in a customer-cashier pair and interleaving of different customer-cashier pairs.
+
 So the output is correct.
 
 \subsubsection{Case 4}
 \begin{lstlisting}[language=bash]
+    ./BBC 2 2 2
+
+    Usage: ./BBC <numCooks> <numCashiers> <numCustomers> <numRacks>
+
+    ./BBC 2 2 2 2 2
+
+    Usage: ./BBC <numCooks> <numCashiers> <numCustomers> <numRacks>
+
     ./BBC 0 2 3 10
 
     Invalid input.
@@ -241,7 +259,7 @@ So the output is correct.
 
 \end{lstlisting}
 
-In this case, we test for edge cases. We do not allow non-postive number of cooks, cashiers, customers and racks.
+In this case, we test for edge cases. We do not allow missing or excessive arguments. We do not allow non-postive number of cooks, cashiers, customers and racks.
 We also prohibit the number of threads to be too large, which may lead to thread number overflow. The threshold is set to 100 in \texttt{MAXSIZE}.
 
 \section{Santa Claus problem}
@@ -459,5 +477,15 @@ Elf 5 DONE.
 \end{lstlisting}
 
 We can easily check the correctness of the output. I have printed sufficient information to indication the current status of the threads. 
+
+We can see that once 3 elves are waiting to be helped, no more elves are allowed to come. 
+
+We can also see that reindeers are allowed to wait outside when santa is helping the elves. Vice versa. (line 11-12, 26-29, 40-45, and so on)
+
+We can see that once 9 reindeers are waiting outside, santa will be waken up, and then the santa will go sending gifts. After santa finishes, reindeers will be released. (line 34-46, 79-89, 130-144)
+
+We can see that once 3 elves are waiting outside, santa will be waken up, and then the santa will help the elves (suppose there are less than 9 reindeers outside). After santa finishes, elves will come back. (line 2-12, 13-29, 55-72)
+
 We can also see the interleave of the threads. For example, line1 and line2, line11 and line13, line40 and line41, and so on.
+
 I set different output different color, and it will be included in the \texttt{typescript.md} file.
