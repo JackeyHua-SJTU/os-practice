@@ -1,0 +1,463 @@
+\section{Burger buddies problem} 
+\subsection{Description}
+We need to design a C solution for the burger buddies process synchronization problem. 
+
+\subsection{Semaphore and Mutex}
+I use five semaphores and one mutex to solve the problem. 
+\begin{itemize}
+    \item \texttt{sem\_customer = 0}, it is used to show whether there is a customer waiting for the cashier.
+    \item \texttt{sem\_customer\_private = 1}. Because every customer has to know the cashier's information, so we need to use this to fetch that info. It is set to 1 so it acts like a mutex.
+    \item \texttt{sem\_cashier = 0}, it reflects the number of cashiers available.
+    \item \texttt{sem\_rack = 0}, it shows the number of burgers in the rack.
+    \item \texttt{sem\_vacant = NUMRACKS}, it shows the number of vacant place in the rack, namely how many burgers can be made currently.
+    \item \texttt{mutex = 1}, it is used by cashier thread and provides a critical section to modify the cashier's information, which will be fetched by corresponding customer thread.
+\end{itemize}
+
+Mutex is no different from semaphore. They are just semaphore with value 1. But the name has better readability.
+
+\subsection{Cashier struct}
+When a customer is served by a cashier, they actually bond together. The customer
+should know the cashier's id. And there should be private semaphore between them. Namely 
+\texttt{order, served, takeaway}. The first one indicates whether the customer has 
+ordered. The second one indicates whether the cashier has fetched the burger and gave it to the customer. The last one indicates whether the customer has taken the burger away.
+They are key to the synchronization between customer and cashier. The struct is designed as follows:
+\begin{lstlisting}[language=C++]
+typedef struct {
+    uint8_t id;         // 服务当前客户的服务员id
+    sem_t* order;       // 客户是否点单
+    sem_t* takeaway;    // 客户是否将汉堡拿走，不拿走服务员不能继续服务
+    sem_t* served;      // 服务员是否拿到了汉堡
+} cashier_arg_t;
+\end{lstlisting}
+
+\subsection{Design}
+Cook, cashier and customer are abstracted as three functions. We create \texttt{NUMCOOKS} cook threads, \texttt{NUMCASHIERS} cashier threads and \texttt{NUMCUSTOMERS} customer threads, running corresponding functions.
+
+Cooks run in infinite loop. They wait for a vacancy in the rack, then make a burger and put it in the rack. I use \texttt{sleep(rand() \% SLEEP)} to simulate the time of making a burger.
+
+Cashier also runs in infinite loop. They wait for a customer to come.
+When a customer matchs a cashier, the cashier need to get the mutex, and update his id and private semaphore to global variable \texttt{cashier\_cur}. After that, 
+he can signal that he is ready to serve. Then he need to wait for the customer to order, using private semaphore \texttt{order}. After the customer orders, he need to wait for a burger. 
+After the burger is ready, he can give it to the customer and wait for the customer to take it away. After the customer takes it away, he can serve another customer or sleep based on the number of customers.
+
+Customer does not run in infinite loop. They will exit after they are served. 
+They first need to get the \texttt{sem\_customer\_private} semaphore, and signal the cashier that they are waiting and wait for a cashier. 
+Then they copy the value of the global variable \texttt{cashier\_cur} to their private variable. After that, they can release the \texttt{sem\_customer\_private} semaphore. 
+Then they can order, wait for the burger and take it away. After that, they can exit. 
+It is very important that they first get the \texttt{sem\_customer\_private} semaphore, and then \texttt{sem\_post(\&sem\_customer)}.
+Because \texttt{sem\_post} does not have concurrency control, so there maybe several customer threads signal concurrently. A later \texttt{sem\_post} thread may first get \texttt{sem\_customer\_private}, leading to the wrong id of the cashier.
+
+Note that there is no order for cashiers to fetch a burger. Namely, if there are 2 cashiers waiting for a burger, any of them can fetch the burger if ready. There is no order between them. It mimics the reality. The cashier 
+will not fetch the burger until the cook shouts out that "A burger is ready." (lazy fetch). So whether the cashier can get this burger or not depends on his speed to fetch the burger. 
+
+Additionally, there is no order for the customers which is waiting to be served. Namely, if there are 2 customers waiting for a cashier, any of them can be served by the next available cashier. There is no order between them. 
+It is reasonable, because there is no concept of queue here. The customer waiting is like a pool, and they compete for the next available cashier. 
+
+\textbf{I write detailed comments in the code, please refer to the code for implementation details.}
+
+\subsection{Verification}
+I test my program on several cases, and i will list and analyze respectively.
+
+\subsubsection{Case 1}
+\begin{lstlisting}[language=bash]
+./BBC 2 4 2 3
+
+Cooks [2], Cashiers [4], Customers [2], Rack[3]
+Begin run.
+
+Customer [1] comes.
+Customer [1] is being served by cashier [1].
+Customer [2] comes.
+Cook [2] cooks a burger and puts it into the rack.
+Cook [2] cooks a burger and puts it into the rack.
+Cook [1] cooks a burger and puts it into the rack.
+Cashier [1] accepts an order.
+Customer [2] is being served by cashier [2].
+Cashier [2] accepts an order.
+Cashier [2] takes a burger from the rack to the customer.
+Customer [2] receives the burger from cashier [2] and leaves.
+Cashier [1] takes a burger from the rack to the customer.
+Customer [1] receives the burger from cashier [1] and leaves.
+
+All customers have left, DONE.
+\end{lstlisting}
+
+In this case, there are more cashiers than customers and rack size greater than the number of customers.
+
+We can see the correct order of a customer and a cashier. First, customer comes, and then a cashier serves him. 
+After that, the customer orders a food. The cashier fetches the burger and gives it to the customer. 
+Finally, the customer takes the burger away and leaves.
+
+We can also see the interleaving of different customer-cashier pair. Because there are no contraints between different customer-cashier pairs.
+We can also see that the cook can make burgers concurrently, not being affected by the cashier or customer other than the rack size.
+
+So it is correct.
+
+\subsubsection{Case 2}
+\begin{lstlisting}[language=bash]
+    ./BBC 4 2 10 20
+
+    Cooks [4], Cashiers [2], Customers [10], Rack[20]
+    Begin run.
+    
+    Cook [2] cooks a burger and puts it into the rack.
+    Customer [1] comes.
+    Customer [1] is being served by cashier [1].
+    Cashier [1] accepts an order.
+    Customer [3] comes.
+    Customer [7] comes.
+    Customer [6] comes.
+    Customer [5] comes.
+    Customer [4] comes.
+    Customer [2] comes.
+    Customer [10] comes.
+    Customer [9] comes.
+    Customer [8] comes.
+    Customer [3] is being served by cashier [2].
+    Cook [1] cooks a burger and puts it into the rack.
+    Cashier [1] takes a burger from the rack to the customer.
+    Customer [1] receives the burger from cashier [1] and leaves.
+    Cook [4] cooks a burger and puts it into the rack.
+    Cashier [2] accepts an order.
+    Customer [7] is being served by cashier [1].
+    Cook [3] cooks a burger and puts it into the rack.
+    Cook [2] cooks a burger and puts it into the rack.
+    Cook [3] cooks a burger and puts it into the rack.
+    Cook [4] cooks a burger and puts it into the rack.
+    Cashier [2] takes a burger from the rack to the customer.
+    Cook [4] cooks a burger and puts it into the rack.
+    Customer [3] receives the burger from cashier [2] and leaves.
+    Cashier [1] accepts an order.
+    Customer [6] is being served by cashier [2].
+    Cook [4] cooks a burger and puts it into the rack.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cook [4] cooks a burger and puts it into the rack.
+    Cashier [1] takes a burger from the rack to the customer.
+    Customer [7] receives the burger from cashier [1] and leaves.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cook [3] cooks a burger and puts it into the rack.
+    Customer [5] is being served by cashier [1].
+    Cashier [2] accepts an order.
+    Cashier [2] takes a burger from the rack to the customer.
+    Customer [6] receives the burger from cashier [2] and leaves.
+    Cook [2] cooks a burger and puts it into the rack.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cashier [1] accepts an order.
+    Cook [4] cooks a burger and puts it into the rack.
+    Customer [4] is being served by cashier [2].
+    Cook [4] cooks a burger and puts it into the rack.
+    Cook [2] cooks a burger and puts it into the rack.
+    Cook [3] cooks a burger and puts it into the rack.
+    Cook [4] cooks a burger and puts it into the rack.
+    Cashier [1] takes a burger from the rack to the customer.
+    Customer [5] receives the burger from cashier [1] and leaves.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cook [2] cooks a burger and puts it into the rack.
+    Customer [2] is being served by cashier [1].
+    Cashier [2] accepts an order.
+    Cook [3] cooks a burger and puts it into the rack.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cashier [2] takes a burger from the rack to the customer.
+    Customer [4] receives the burger from cashier [2] and leaves.
+    Cook [4] cooks a burger and puts it into the rack.
+    Cook [2] cooks a burger and puts it into the rack.
+    Cashier [1] accepts an order.
+    Customer [10] is being served by cashier [2].
+    Cashier [1] takes a burger from the rack to the customer.
+    Customer [2] receives the burger from cashier [1] and leaves.
+    Customer [9] is being served by cashier [1].
+    Cashier [2] accepts an order.
+    Cashier [1] accepts an order.
+    Cook [3] cooks a burger and puts it into the rack.
+    Cashier [2] takes a burger from the rack to the customer.
+    Customer [10] receives the burger from cashier [2] and leaves.
+    Customer [8] is being served by cashier [2].
+    Cashier [1] takes a burger from the rack to the customer.
+    Customer [9] receives the burger from cashier [1] and leaves.
+    Cook [1] cooks a burger and puts it into the rack.
+    Cashier [2] accepts an order.
+    Cashier [2] takes a burger from the rack to the customer.
+    Customer [8] receives the burger from cashier [2] and leaves.
+    
+    All customers have left, DONE.
+    Cook [2] cooks a burger and puts it into the rack.
+
+\end{lstlisting}
+
+In this case, there are more customers than cashiers and rack size greater than the number of customers.
+
+The analysis is similar to the previous case. We can see customer waiting for the cashier. It is obvious that the output is correct.
+
+\subsubsection{Case 3}
+
+\begin{lstlisting}[language=bash]
+./BBC 4 3 4 1
+
+Cooks [4], Cashiers [3], Customers [4], Rack[1]
+Begin run.
+
+Customer [1] comes.
+Customer [1] is being served by cashier [1].
+Customer [2] comes.
+Customer [4] comes.
+Customer [3] comes.
+Cashier [1] accepts an order.
+Customer [2] is being served by cashier [2].
+Cook [1] cooks a burger and puts it into the rack.
+Cashier [2] accepts an order.
+Customer [4] is being served by cashier [3].
+Cashier [1] takes a burger from the rack to the customer.
+Customer [1] receives the burger from cashier [1] and leaves.
+Cook [2] cooks a burger and puts it into the rack.
+Cashier [2] takes a burger from the rack to the customer.
+Customer [2] receives the burger from cashier [2] and leaves.
+Cook [3] cooks a burger and puts it into the rack.
+Cashier [3] accepts an order.
+Customer [3] is being served by cashier [1].
+Cashier [1] accepts an order.
+Cashier [3] takes a burger from the rack to the customer.
+Customer [4] receives the burger from cashier [3] and leaves.
+Cook [4] cooks a burger and puts it into the rack.
+Cashier [1] takes a burger from the rack to the customer.
+Customer [3] receives the burger from cashier [1] and leaves.
+Cook [1] cooks a burger and puts it into the rack.
+
+All customers have left, DONE.
+\end{lstlisting}
+
+In this case, there are more cooks than the rack size. We can obviously see
+that the cook is blocked by the rack size. And cashier is waiting for the burger.
+So the output is correct.
+
+\subsubsection{Case 4}
+\begin{lstlisting}[language=bash]
+    ./BBC 0 2 3 10
+
+    Invalid input.
+
+    ./BBC 105 1 200 299
+
+    Too many cooks/cashiers/customers/racks. Risks of threads number overflow.
+
+\end{lstlisting}
+
+In this case, we test for edge cases. We do not allow non-postive number of cooks, cashiers, customers and racks.
+We also prohibit the number of threads to be too large, which may lead to thread number overflow. The threshold is set to 100 in \texttt{MAXSIZE}.
+
+\section{Santa Claus problem}
+\subsection{Description}
+We need to design a C solution for the Santa Claus synchronization problem.
+
+\subsection{Semaphore, Mutex, and Condition Variable}
+There are quite a lot of semaphores, mutexes and condition variables in this problem. I will expand 
+on them respectively and explain their usage.
+
+\begin{itemize}
+    \item \texttt{santaSem = 0}. It is used to wake up Santa Claus. When there are 3 elves or 9 reindeers, they will \texttt{sem\_post} this semaphore to wake up Santa Claus.
+    \item \texttt{reindeerSem = 0}. It is used for currently waiting reindeers. They use this semaphore to wait to be hitched. When santa claus is ready, he will \texttt{sem\_post} this semaphore for 9 times to wake up the reindeers. 
+    \item \texttt{elfSem = 0}. It is used for currently waiting elves. They use this semaphore to wait for help. When santa claus is ready, he will \texttt{sem\_post} this semaphore for 3 times to wake up the elves.
+    \item \texttt{elfallow = 3}. When there are 3 elves waiting, any other coming elves should be blocked. 
+    \item \texttt{reindeerEnd = 0}. It is used to show whether the reindeers have finished their task. It will be \texttt{sem\_post} by the santa claus after he has come back from the ride. Only when santa claus manually \texttt{sem\_wait} this semaphore can the reindeers go back.
+    \item \texttt{mutex = 1}. It is the mutex for visiting the global variables.
+    \item \texttt{reindeerCount = 0}. It is used to count how many reindeers are currently waiting. When it reaches 9, the santa claus will be waken up.
+    \item \texttt{elfCount = 0}. It is used to count how many elves are currently waiting. When it reaches 3, the santa claus will be waken up.
+    \item \texttt{sleighCount = 0}. It is used to count how many times the santa claus is waken up by reindeers.
+    \item \texttt{helpCount = 0}. It is used to count how many times the santa claus is waken up by elves.
+    \item \texttt{hitchedCount = 0}. It is used to count how many reindeers have been hitched. Only when it reaches 9 can the santa claus go to the ride.
+    \item \texttt{elvesBuf[3]}. It is used to store the id of the elves who are currently being helped by santa claus.
+    \item \texttt{flag\_r}. It is used to block reindeer from waiting right after a ride is finished. Take this as an example. When santa claus finished a ride, all 9 reindeers will be released and go back. No reindeers should wait for the next ride before all the reindeers have gone back. But due to the concurrency of thread, there may be some reindeers go back again to wait for the santa claus when some reindeers are still waiting to go back to their inhabitants. 
+    \item \texttt{flag\_e}. It is quite silimar to \texttt{flag\_r}. When the santa claus have finished helping 3 elves, no elves are allowed to be helped until the 3 elves being helped have left. It is actually redundant, since we use \texttt{elfallow} to block the elves. But is is a good practice to use this flag to avoid some potential bugs.
+    \item \texttt{flag\_exit}. It is used to tell the elves and reindeers who are still blocked by semaphores to exit when end requirements are satisfied. 
+\end{itemize}
+
+\subsection{Design}
+There are 3 types of threads in this problem, namely santa claus, reindeer and elf. They are all represented as a function.
+
+We first look at reindeer function. Reindeer runs in infinite loop. At the beginning of the loop, when the end requirements are satisfied, they will exit. When \texttt{flag\_r} is 0, 
+it means that santa claus has finished the ride, and the 9 reindeers are being released. So the current reindeer should not come to wait (it should iterate in a while loop) until all previous reindeers have been released.
+After that, they will rest for random time and then come to wait to be hitched. Then it will get the mutex, and add the \texttt{reindeerCount}. If the \texttt{reindeerCount} reaches 9, it will wake up the santa claus. 
+Then it will wait for santa claus to signal \texttt{reindeerSem} to hitch them. I add a judgment after this semaphore. If the \texttt{flag\_exit} is 1, then the reindeer should exit. That is why we need this flag. (Because when end requirements are satisfied, some reindeers may be blocked by \texttt{reindeerSem}).
+Then the reindeer will get hitched and add the \texttt{hitchedCount}. If the \texttt{hitchedCount} reaches 9, the santa claus will go for a ride. After that, it will wait for the santa claus to end the ride. At the end, it will be released and decrement the \texttt{reindeerCount} by 1.
+
+Then we take a look at elf function. The starting part is same as the reindeer. They will exit when the end requirements are satisfied. They should iterate until the \texttt{flag\_e} is 0, which means that the previous 3 elves being helped have left. 
+Then they will rest for random time and come to wait for help. It will first wait for \texttt{elfallow}, which will be 0 if there have been 3 elves waiting. After that i add another judgment for \texttt{flag\_exit} in case of the same situation as reindeer. 
+Then it will get the mutex, increment the \texttt{elfCount} by 1 and record its id in the \texttt{elvesBuf}. If the \texttt{elfCount} reaches 3, it will wake up the santa claus. Then it will wait for the santa claus to signal \texttt{elfSem}, which is the sign of the end of help.
+After that, it will get the mutex and decrement the \texttt{elfCount} by 1.
+
+Finally, let's dive into the santa claus function. At the beginning of the function, it is still the judgment for the end requirements. If satisfied, the santa claus will set the \texttt{flag\_exit} to 1 and \texttt{sem\_post \{elfSem, elfallow, reindeerSem\}}, thus reindeers and elves will exit decently. 
+Then he will wait for the reindeers or elves to wake him up. If waken up by reindeers, it will first set the \texttt{flag\_r} to 0 (the purpose has been stated above). Then it will post the \texttt{reindeerSem} for 9 times to prepare a sleigh and wait for the reindeers to be hitched. When all the reindeers are hitched, he will go out for a ride, sending gifts to children all around the world.
+After the ride, he will post the \texttt{reindeerEnd} to let the reindeers go back. After all the reindeers have gone back, this round has finished. He will then set the \texttt{flag\_r} to 1, and wait for the next round. If waken up by elves, 
+likewise, he will set the \texttt{flag\_e} to 0, and then start to help the elves. I use random sleep to simulate this process. After that, he will \texttt{sem\_post} the \texttt{elfSem} for 3 times to end the help. He will set the \texttt{flag\_e} to 1 until all three elves have left, namely \texttt{elfCount == 0}. 
+At last, he will \texttt{sem\_post} the \texttt{elfallow} to let other elves come to wait.
+
+\subsection{Verification}
+I set the requirements of the end to 3 rounds of reindeers and 3 rounds of elves (because 30 rounds will be too long). The results are as follows:
+
+\begin{lstlisting}[language=bash]
+Reindeer 6 is waiting for the santa claus.
+Elf 0 is waiting for the santa claus.
+Elf 4 is waiting for the santa claus.
+Elf 8 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 0, Help elves count : 1.
+Elf 0 is being helped.
+Elf 4 is being helped.
+Elf 8 is being helped.
+Reindeer 2 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Elf 7 is waiting for the santa claus.
+Reindeer 7 is waiting for the santa claus.
+Reindeer 3 is waiting for the santa claus.
+Reindeer 1 is waiting for the santa claus.
+Reindeer 4 is waiting for the santa claus.
+Elf 2 is waiting for the santa claus.
+Elf 3 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 0, Help elves count : 2.
+Elf 7 is being helped.
+Elf 2 is being helped.
+Elf 3 is being helped.
+Reindeer 5 is waiting for the santa claus.
+Reindeer 0 is waiting for the santa claus.
+Reindeer 8 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Elf 6 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: preparing sleigh.
+Sleigh count : 1, Help elves count : 2.
+Reindeer 2 getting hitched.
+Reindeer 6 getting hitched.
+Reindeer 1 getting hitched.
+Reindeer 4 getting hitched.
+Reindeer 0 getting hitched.
+Reindeer 8 getting hitched.
+Elf 9 is waiting for the santa claus.
+Elf 8 is waiting for the santa claus.
+Reindeer 3 getting hitched.
+Reindeer 7 getting hitched.
+Reindeer 5 getting hitched.
+Santa Claus together with 9 reindeers are going to send gifts to children around the world.
+Santa Claus finishes sending gift to children.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 1, Help elves count : 3.
+Elf 6 is being helped.
+Elf 9 is being helped.
+Elf 8 is being helped.
+Reindeer 4 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Elf 1 is waiting for the santa claus.
+Elf 0 is waiting for the santa claus.
+Elf 5 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 1, Help elves count : 4.
+Elf 1 is being helped.
+Elf 0 is being helped.
+Elf 5 is being helped.
+Reindeer 1 is waiting for the santa claus.
+Reindeer 2 is waiting for the santa claus.
+Reindeer 6 is waiting for the santa claus.
+Reindeer 5 is waiting for the santa claus.
+Reindeer 7 is waiting for the santa claus.
+Reindeer 0 is waiting for the santa claus.
+Reindeer 8 is waiting for the santa claus.
+Reindeer 3 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Elf 4 is waiting for the santa claus.
+Elf 2 is waiting for the santa claus.
+Elf 7 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: preparing sleigh.
+Sleigh count : 2, Help elves count : 4.
+Reindeer 4 getting hitched.
+Reindeer 2 getting hitched.
+Reindeer 6 getting hitched.
+Reindeer 1 getting hitched.
+Reindeer 5 getting hitched.
+Reindeer 7 getting hitched.
+Reindeer 0 getting hitched.
+Reindeer 8 getting hitched.
+Reindeer 3 getting hitched.
+Santa Claus together with 9 reindeers are going to send gifts to children around the world.
+Santa Claus finishes sending gift to children.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 2, Help elves count : 5.
+Elf 4 is being helped.
+Elf 2 is being helped.
+Elf 7 is being helped.
+Reindeer 5 is waiting for the santa claus.
+Reindeer 3 is waiting for the santa claus.
+Reindeer 4 is waiting for the santa claus.
+Reindeer 2 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Reindeer 0 is waiting for the santa claus.
+Elf 3 is waiting for the santa claus.
+Elf 8 is waiting for the santa claus.
+Elf 9 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 2, Help elves count : 6.
+Elf 3 is being helped.
+Elf 8 is being helped.
+Elf 9 is being helped.
+Santa Claus finishes helping the elves.
+Elf 0 is waiting for the santa claus.
+Elf 5 is waiting for the santa claus.
+Elf 7 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: helping elves.
+Sleigh count : 2, Help elves count : 7.
+Elf 0 is being helped.
+Elf 5 is being helped.
+Elf 7 is being helped.
+Reindeer 1 is waiting for the santa claus.
+Reindeer 7 is waiting for the santa claus.
+Reindeer 8 is waiting for the santa claus.
+Reindeer 6 is waiting for the santa claus.
+Santa Claus finishes helping the elves.
+Elf 6 is waiting for the santa claus.
+Santa Claus is waken up.
+Santa Claus: preparing sleigh.
+Sleigh count : 3, Help elves count : 7.
+Reindeer 5 getting hitched.
+Reindeer 1 getting hitched.
+Reindeer 3 getting hitched.
+Reindeer 2 getting hitched.
+Reindeer 4 getting hitched.
+Reindeer 7 getting hitched.
+Reindeer 6 getting hitched.
+Reindeer 8 getting hitched.
+Elf 4 is waiting for the santa claus.
+Elf 1 is waiting for the santa claus.
+Elf 7 DONE.
+Elf 0 DONE.
+Elf 8 DONE.
+Reindeer 0 getting hitched.
+Santa Claus together with 9 reindeers are going to send gifts to children around the world.
+Santa Claus finishes sending gift to children.
+Reindeer 5 DONE.
+Reindeer 1 DONE.
+Reindeer 3 DONE.
+Reindeer 2 DONE.
+Reindeer 4 DONE.
+Reindeer 7 DONE.
+Reindeer 6 DONE.
+Reindeer 8 DONE.
+Reindeer 0 DONE.
+Santa Claus DONE.
+Elf 6 DONE.
+Elf 3 DONE.
+Elf 1 DONE.
+Elf 4 DONE.
+Elf 2 DONE.
+Elf 9 DONE.
+Elf 5 DONE.
+\end{lstlisting}
+
+We can easily check the correctness of the output. I have printed sufficient information to indication the current status of the threads. 
+We can also see the interleave of the threads. For example, line1 and line2, line11 and line13, line40 and line41, and so on.
+I set different output different color, and it will be included in the \texttt{typescript.md} file.
