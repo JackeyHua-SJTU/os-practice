@@ -33,19 +33,19 @@ void* SantaClaus(void* arg) {
     while (1) {
         int f = 0;
         pthread_mutex_lock(&mutex);
-        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) {
+        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) {     // 判断是否满足退出条件
             printf(YELLOW "Santa Claus DONE.\n" RESET);
             f = 1;
-            flag_exit = 1;
+            flag_exit = 1;                                      // 退出条件满足，设置退出标志，将被阻塞的精灵和驯鹿释放
             /* 释放信号量资源，防止精灵和驯鹿忙等 */
             for (int i = 0; i < NUM_ELVES_FOR_SANTA; ++i) sem_post(&elfSem);
             for (int i = 0; i < NUM_ELVES; ++i) sem_post(&elfallow);
             for (int i = 0; i < NUM_REINDEER; ++i) sem_post(&reindeerSem);
         }
         pthread_mutex_unlock(&mutex);
-        if (f) break;
+        if (f) break;                                           // 必须在释放互斥锁后再退出，否则会导致死锁
 
-        sem_wait(&santaSem);
+        sem_wait(&santaSem);                                    // 等待被唤醒
         printf(MAGENTA "Santa Claus is waken up.\n" RESET);
         int rc, ec, sc, hc;
 
@@ -60,11 +60,11 @@ void* SantaClaus(void* arg) {
         if (rc == NUM_REINDEER) {
             printf(RED "Santa Claus: preparing sleigh.\nSleigh count : %d, Help elves count : %d.\n" RESET, sc + 1, hc);
             pthread_mutex_lock(&mutex);
-            flag_r = 0;
-            sleighCount++;
+            flag_r = 0;                                         // 在本次巡回彻底结束前（即所有驯鹿全部被释放且已经回到归处），禁止任何驯鹿进入等待队列
+            sleighCount++;                                      // 记录此次帮助
             pthread_mutex_unlock(&mutex);
             for (int i = 0; i < NUM_REINDEER; i++) {
-                sem_post(&reindeerSem);
+                sem_post(&reindeerSem);                         // 准备好了雪橇，让驯鹿系上绳子
             }
 
             while (1) {
@@ -74,6 +74,7 @@ void* SantaClaus(void* arg) {
                 pthread_mutex_unlock(&mutex);
                 if (cnt == NUM_REINDEER) break;
             }
+            // 循环结束后所有驯鹿均已经系上绳子
 
             printf(GREEN "Santa Claus together with %d reindeers are going to send gifts to children around the world.\n" RESET, NUM_REINDEER);
             sleep(rand() % SLEEP);              // 模拟送礼物
@@ -88,14 +89,14 @@ void* SantaClaus(void* arg) {
                 if (!cnt) break;
             }
             pthread_mutex_lock(&mutex);
-            flag_r = 1;
+            flag_r = 1;                            // 所有驯鹿均已经回到归处，可以允许新的驯鹿进入等待队列
             hitchedCount = 0;
             pthread_mutex_unlock(&mutex);
         } else if (ec == NUM_ELVES_FOR_SANTA) {
             printf(RED "Santa Claus: helping elves.\nSleigh count : %d, Help elves count : %d.\n" RESET, sc, hc + 1);
             pthread_mutex_lock(&mutex);
-            flag_e = 0;
-            helpCount++;
+            flag_e = 0;                             // 在本次帮助彻底结束前（即所有精灵全部被释放且已经回到归处），禁止任何精灵进入等待队列
+            helpCount++;                            // 记录此次帮助
             pthread_mutex_unlock(&mutex);
             for (int i = 0; i < NUM_ELVES_FOR_SANTA; i++) {
                 printf(GREEN "Elf %d is being helped.\n" RESET, elvesBuf[i]);
@@ -104,7 +105,7 @@ void* SantaClaus(void* arg) {
             sleep(rand() % SLEEP);
             printf(MAGENTA "Santa Claus finishes helping the elves.\n" RESET);
             for (int i = 0; i < NUM_ELVES_FOR_SANTA; ++i) {
-                sem_post(&elfSem);
+                sem_post(&elfSem);                  // 帮助完成，释放精灵资源
             }
 
             while (1) {
@@ -114,8 +115,9 @@ void* SantaClaus(void* arg) {
                 pthread_mutex_unlock(&mutex);
                 if (!cnt) break;
             }
+            // 循环结束后所有精灵均已经回到归处
             pthread_mutex_lock(&mutex);
-            flag_e = 1;
+            flag_e = 1;                             // 所有精灵均已经回到归处，可以允许新的精灵进入等待队列
             pthread_mutex_unlock(&mutex);
             for (int i = 0; i < NUM_ELVES_FOR_SANTA; ++i) sem_post(&elfallow);
         }
@@ -127,11 +129,11 @@ void* Reindeer(void* arg) {
     while (1) {
         int f = 0, f1;
         pthread_mutex_lock(&mutex);
-        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) f = 1;
+        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) f = 1;    // 退出条件满足，则应该退出
         f1 = flag_r;
         pthread_mutex_unlock(&mutex);
         if (f) break;
-        if (!f1) continue;
+        if (!f1) continue;                                          // 在圣诞老人巡回结束前，不允许新的驯鹿进入等待队列，为flag_r的定义
 
         sleep(rand() % SLEEP);
         int id = *(int*)arg;
@@ -139,20 +141,20 @@ void* Reindeer(void* arg) {
         pthread_mutex_lock(&mutex);
         reindeerCount++;
         if (reindeerCount == NUM_REINDEER) {
-            sem_post(&santaSem);
+            sem_post(&santaSem);                                    // 驯鹿数量达到9只，唤醒圣诞老人
         }
         pthread_mutex_unlock(&mutex);
-        sem_wait(&reindeerSem);
+        sem_wait(&reindeerSem);                                     // 等圣诞老人准备好雪橇，从而系上绳子，圣诞老人未被唤醒前，所有的驯鹿都会被阻塞
         int nf;
         pthread_mutex_lock(&mutex);
-        nf = flag_exit;
+        nf = flag_exit;                                            // 判断是否需要退出，因为退出条件满足时可能有部分驯鹿被reindeersem阻塞（该信号量会被santa显式释放），需要在此处加入判断
         pthread_mutex_unlock(&mutex);
         if (nf) break;
         printf(GREEN "Reindeer %d getting hitched.\n" RESET, id);
         pthread_mutex_lock(&mutex);
         ++hitchedCount;
         pthread_mutex_unlock(&mutex);
-        sem_wait(&reindeerEnd);
+        sem_wait(&reindeerEnd);                                     // 等待圣诞老人送完礼物
         pthread_mutex_lock(&mutex);
         --reindeerCount;
         // printf("Reindeer %d leaves, current count : %d.\n", id, reindeerCount);
@@ -166,37 +168,37 @@ void* Elf(void* arg) {
     while (1) {
         int f = 0, f1;
         pthread_mutex_lock(&mutex);
-        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) f = 1;
+        if (sleighCount >= ROUNDS && helpCount >= ROUNDS) f = 1;        // 退出条件满足，则应该退出
         f1 = flag_e;
         pthread_mutex_unlock(&mutex);
         if (f) break;
-        if (!f1) continue;
+        if (!f1) continue;                                              // 在圣诞老人帮助结束前，不允许新的精灵进入等待队列，为flag_e的定义
         
         sleep(rand() % SLEEP);
         // printf("Elf %d is waiting for the santa claus.\n", *(int*)arg);
-        sem_wait(&elfallow);
+        sem_wait(&elfallow);                                            // 等待有空位，如果已经有三只精灵在等待，则不再允许新的精灵进入等待队列
         int nf;
         pthread_mutex_lock(&mutex);
         nf = flag_exit;
         pthread_mutex_unlock(&mutex);
 
-        if (nf) break;
+        if (nf) break;                                                  // 退出条件满足时，部分精灵可能被elfallow阻塞，需要在此处加入判断
         
         int id = *(int*)arg;
         // printf("This is elf %d\n", id);
         pthread_mutex_lock(&mutex);
         if (elfCount < NUM_ELVES_FOR_SANTA) {
-            elvesBuf[elfCount] = id;
+            elvesBuf[elfCount] = id;                                    // 记录需要帮助的精灵的id
             printf("Elf %d is waiting for the santa claus.\n", id);
             ++elfCount;
-            if (elfCount == NUM_ELVES_FOR_SANTA) sem_post(&santaSem);
+            if (elfCount == NUM_ELVES_FOR_SANTA) sem_post(&santaSem);   // 等待的精灵数量达到三只，唤醒圣诞老人
         } else {
             // 因为 elfallow 资源的限制，永远不会执行到
             printf("Elf %d goes back.\n", id);
             continue;
         }
         pthread_mutex_unlock(&mutex);
-        sem_wait(&elfSem);
+        sem_wait(&elfSem);                                              // 等待圣诞老人帮助
         pthread_mutex_lock(&mutex);
         --elfCount;
         pthread_mutex_unlock(&mutex);       
