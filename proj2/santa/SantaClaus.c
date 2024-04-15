@@ -63,6 +63,7 @@ void* SantaClaus(void* arg) {
             flag_r = 0;                                         // 在本次巡回彻底结束前（即所有驯鹿全部被释放且已经回到归处），禁止任何驯鹿进入等待队列
             sleighCount++;                                      // 记录此次帮助
             pthread_mutex_unlock(&mutex);
+            /* 这个操作就是 preparesleigh */
             for (int i = 0; i < NUM_REINDEER; i++) {
                 sem_post(&reindeerSem);                         // 准备好了雪橇，让驯鹿系上绳子
             }
@@ -93,6 +94,7 @@ void* SantaClaus(void* arg) {
             hitchedCount = 0;
             pthread_mutex_unlock(&mutex);
         } else if (ec == NUM_ELVES_FOR_SANTA) {
+            /* 这个操作就是 helpElves */
             printf(RED "Santa Claus: helping elves.\nSleigh count : %d, Help elves count : %d.\n" RESET, sc, hc + 1);
             pthread_mutex_lock(&mutex);
             flag_e = 0;                             // 在本次帮助彻底结束前（即所有精灵全部被释放且已经回到归处），禁止任何精灵进入等待队列
@@ -151,6 +153,7 @@ void* Reindeer(void* arg) {
         pthread_mutex_unlock(&mutex);
         if (nf) break;
         printf(GREEN "Reindeer %d getting hitched.\n" RESET, id);
+        /* 这个操作就是 gethitched */
         pthread_mutex_lock(&mutex);
         ++hitchedCount;
         pthread_mutex_unlock(&mutex);
@@ -191,6 +194,7 @@ void* Elf(void* arg) {
             elvesBuf[elfCount] = id;                                    // 记录需要帮助的精灵的id
             printf("Elf %d is waiting for the santa claus.\n", id);
             ++elfCount;
+            /* 当elfcount到3的时候，就会 getHelp */
             if (elfCount == NUM_ELVES_FOR_SANTA) sem_post(&santaSem);   // 等待的精灵数量达到三只，唤醒圣诞老人
         } else {
             // 因为 elfallow 资源的限制，永远不会执行到
@@ -198,7 +202,8 @@ void* Elf(void* arg) {
             continue;
         }
         pthread_mutex_unlock(&mutex);
-        sem_wait(&elfSem);                                              // 等待圣诞老人帮助
+        /* 这个过程就是被帮助的过程，santa在帮助结束后才会显式的释放elfsem*/
+        sem_wait(&elfSem);                                              // 等待圣诞老人帮助结束
         pthread_mutex_lock(&mutex);
         --elfCount;
         pthread_mutex_unlock(&mutex);       
