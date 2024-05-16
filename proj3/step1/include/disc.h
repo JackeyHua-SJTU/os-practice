@@ -10,6 +10,7 @@ typedef struct {
     int _numCylinder;               // * # of cylinders
     int _numSectorPerCylinder;      // * # of sector per cylinder
     int _fd;                        // * file descriptor
+    int _prev_cylinder;             // * previous cylinder
     double _trackDelay;             // * time delay moving between tracks
     char* _file;                    // * file name
     char* _discfile;                // * disc file mapped to the current file
