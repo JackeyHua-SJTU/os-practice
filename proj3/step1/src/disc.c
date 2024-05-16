@@ -75,7 +75,7 @@ void parseCmdInput(Disc* disc, char* cmd) {
         case 1:
             if (strcmp(argv[0], "I") != 0) {
                 // printf("strcmp is %d\n", strcmp(argv[0], "I"));
-                perror("Wrong types of command. Please input 'I'.");
+                perror("Wrong types of command of length 1. Please input 'I'.");
                 free(argv);
                 exit(-1);
             } else {
@@ -84,7 +84,7 @@ void parseCmdInput(Disc* disc, char* cmd) {
             break;
         case 3:
             if (strcmp(argv[0], "R") != 0) {
-                perror("Wrong types of command. Please input 'R [cyclinder] [sector]'.");
+                perror("Wrong types of command of length 3. Please input 'R [cyclinder] [sector]'.");
                 free(argv);
                 exit(-1);
             } else {
@@ -106,7 +106,7 @@ void parseCmdInput(Disc* disc, char* cmd) {
 
         case 5:
             if (strcmp(argv[0], "W") != 0) {
-                perror("Wrong types of command. Please input 'W [cyclinder] [sector] [length] [data]'.");
+                perror("Wrong types of command of length 5. Please input 'W [cyclinder] [sector] [length] [data]'.");
                 free(argv);
                 exit(-1);
             } else {

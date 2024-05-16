@@ -1,3 +1,6 @@
+/*
+    * Basic Disc Server
+*/
 #include "disc.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,7 +75,6 @@ int main(int argc, char** argv) {
             perror("accept");
             continue;
         }
-
         pid_t pid = fork();
         if (pid == -1) {
             perror("fork");
@@ -87,9 +89,10 @@ int main(int argc, char** argv) {
             dup2(clientfd, 1);
             dup2(clientfd, 2);
             while (1) {
-                char info[32];
-                snprintf(info, sizeof(info), "Welcome to the disc server: ");
-                write(clientfd, info, strlen(info));
+                // char info[32];
+                // memset(info, 0, sizeof(info));
+                // snprintf(info, sizeof(info), "Welcome to the disc server: ");
+                // write(clientfd, info, strlen(info));
                 memset(input, 0, sizeof(input));
                 int n = read(clientfd, input, sizeof(input));
                 if (strcmp(strtok(input, "\n\r"), "Q") == 0) {
