@@ -1,4 +1,4 @@
-target: server client_cli
+target: server client_cli client_rand
 server: src/BDS.c src/disc.c
 	gcc $^ -o BDS -I include/ -Wall
 
