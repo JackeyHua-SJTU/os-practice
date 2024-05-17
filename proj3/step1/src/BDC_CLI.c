@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-#define MAX_INPUT 256
+#define MAX_INPUT 512
 #define MAX_RESPONSE 1024
 
 int main(int argc, char** argv) {

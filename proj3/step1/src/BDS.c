@@ -13,7 +13,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define MAX_INPUT 256
+#define MAX_INPUT 512
 #define MAX_CLIENTS 5
 
 Disc d;

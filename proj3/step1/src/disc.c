@@ -144,6 +144,7 @@ void queryOp(Disc* disc) {
 
 void readOp(Disc* disc, int cylinderID, int sectorID) {
     char buf[BLOCK_SIZE + 1];
+    memset(buf, 0, BLOCK_SIZE + 1);
     if (cylinderID < 0 || cylinderID >= disc->_numCylinder || sectorID < 0 || sectorID >= disc->_numSectorPerCylinder) {
         printf("No\n");
         return;
@@ -156,7 +157,7 @@ void readOp(Disc* disc, int cylinderID, int sectorID) {
 }
 
 void writeOp(Disc* disc, int cylinderID, int sectorID, int len, char* data) {
-    if (cylinderID < 0 || cylinderID >= disc->_numCylinder || sectorID < 0 || sectorID >= disc->_numSectorPerCylinder || len < 0 || len >= BLOCK_SIZE) {
+    if (cylinderID < 0 || cylinderID >= disc->_numCylinder || sectorID < 0 || sectorID >= disc->_numSectorPerCylinder || len < 0 || len > BLOCK_SIZE) {
         printf("No\n");
         return;
     }
