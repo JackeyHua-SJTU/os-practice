@@ -30,6 +30,6 @@ void update_spbk();
 
 int alloc_block();
 
-int gc_block(uint16_t, int);
+int gc_block(uint16_t, uint16_t);
 
 #endif
