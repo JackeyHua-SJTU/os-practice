@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 
 // ! Socket connection should be done at main function
+// TODO: Check whether \n received from the server matter
 
 #define BLOCK_SIZE 256
 
@@ -21,6 +22,10 @@ void read2(int sockfd, uint16_t client_id, int c, int r) {
     sprintf(cmd, "R %d %d\n", c, r);
     send(sockfd, cmd, sizeof(cmd), 0);
     recv(sockfd, buffer[client_id], MAX_LENGTH - 1, 0);
+    char* space = strchr(buffer[client_id], ' ');
+    if (space != NULL) {
+        memmove(buffer[client_id], space + 1, strlen(space + 1) + 1);
+    }
 }
 
 void read1(int sockfd, uint16_t client_id, int index) {
@@ -29,6 +34,10 @@ void read1(int sockfd, uint16_t client_id, int index) {
     sprintf(cmd, "R %d\n", index);
     send(sockfd, cmd, sizeof(cmd), 0);
     recv(sockfd, buffer[client_id], MAX_LENGTH - 1, 0);
+    char* space = strchr(buffer[client_id], ' ');
+    if (space != NULL) {
+        memmove(buffer[client_id], space + 1, strlen(space + 1) + 1);
+    }
 }
 
 void write2(int sockfd, uint16_t client_id, int c, int r, long size, char* data) {
