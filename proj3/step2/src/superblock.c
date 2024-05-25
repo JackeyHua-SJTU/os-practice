@@ -26,7 +26,7 @@ void init(int block_size, int fd) {
 void update_spbk() {
     char data[BLOCK_SIZE * 3 + 10];
     memcpy(data, &spbk, sizeof(Superblock));
-    write(sockfd, 0, 0, 0, sizeof(Superblock), data);
+    write1(sockfd, 0, 0, sizeof(Superblock), data);
 }
 
 int alloc_block() {
@@ -34,7 +34,7 @@ int alloc_block() {
         return -1;
     }
     int blockID = -1;
-    for (int i = 4; i < BLOCK_BITMSP_SIZE; ++i) {
+    for (int i = 4; i < BLOCK_BITMAP_SIZE; ++i) {
         for (int j = 31; j >= 0; --j) {
             if ((spbk._block_bitmap[i] >> j) & 1) continue;
             else {
@@ -51,19 +51,19 @@ int alloc_block() {
     return blockID;
 }
 
-int gc_block(uint16_t blockID, int clientID) {
-    if (blockID < RESERVE_BLOCK_NUM) {
+int gc_block(uint16_t blockID, uint16_t clientID) {
+    if (blockID < RESERVE_BLOCK_NUM || blockID >= MAX_BLOCK_NUM) {
         return -1;
     }
-    int c = blockID / BLOCK_SIZE;
-    int r = blockID % BLOCK_SIZE;
+    int c = blockID / 32;
+    int r = blockID % 32;
     if (((spbk._block_bitmap[c] >> (31 - r)) & 1) == 0) {
         return 1;
     }
     spbk._block_count--;
     spbk._vacant_block_count++;
     spbk._block_bitmap[c] ^= (1 << (31 - r));
-    write(sockfd, clientID, c, r, 0, "");
+    write1(sockfd, clientID, blockID, 0, "");
     update_spbk();
     return 1;
 }   

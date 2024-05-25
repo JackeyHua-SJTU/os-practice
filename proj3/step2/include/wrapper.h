@@ -6,15 +6,23 @@
 #define MAX_CLENTS 6
 #define MAX_LENGTH 1024
 
+#include <stdint.h>
+
 // * Write the response of disc server to the correspond index
+// ! Notice the cliend 0 is the root user
+// ! Those id >= 1 are real clients
 char buffer[MAX_CLENTS][MAX_LENGTH];
 char cmd[MAX_LENGTH];
 
-void query(int sockfd, int client_id);
+void query(int sockfd, uint16_t client_id);
 
-void read(int sockfd, int client_id, int c, int r);
+void read2(int sockfd, uint16_t client_id, int c, int r);
+
+void read1(int sockfd, uint16_t client_id, int index);
 
 // * We need to handle arbitrary length
-void write(int sockfd, int client_id, int c, int r, long size, char* data);
+void write2(int sockfd, uint16_t client_id, int c, int r, long size, char* data);
+
+void write1(int sockfd, uint16_t client_id, int index, long size, char* data);
 
 #endif

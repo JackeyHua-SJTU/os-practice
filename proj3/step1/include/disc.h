@@ -27,6 +27,10 @@ void queryOp(Disc* disc);
 
 void readOp(Disc* disc, int cylinderID, int sectorID);
 
+void readOp_client(Disc* disc, int blockID);
+
 void writeOp(Disc* disc, int cylinderID, int sectorID, int len, char* data);
+
+void writeOp_client(Disc* disc, int blockID, int len, char* data);
 
 #endif

@@ -12,6 +12,6 @@ typedef struct {
     uint8_t _state;
     uint16_t _inode_id;
     char _name[MAX_NAME_LEN];
-} entry;
+} Entry;
 
 #endif

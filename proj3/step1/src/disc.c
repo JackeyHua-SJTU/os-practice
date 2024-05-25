@@ -82,6 +82,21 @@ void parseCmdInput(Disc* disc, char* cmd) {
                 queryOp(disc);
             }
             break;
+        case 2:
+            if (strcmp(argv[0], "R") != 0) {
+                perror("Wrong types of command of length 2. Please input 'R [index]'.");
+                free(argv);
+                exit(-1);
+            } else {
+                int index = atoi(argv[1]);
+                if (index == 0 && strcmp(argv[1], "0") != 0) {
+                    perror("Invalid index number, check it out.");
+                    free(argv);
+                    exit(-1);
+                }
+                readOp_client(disc, index);
+            }
+            break;
         case 3:
             if (strcmp(argv[0], "R") != 0) {
                 perror("Wrong types of command of length 3. Please input 'R [cyclinder] [sector]'.");
@@ -103,6 +118,28 @@ void parseCmdInput(Disc* disc, char* cmd) {
                 readOp(disc, cylinder, sector);
             }
             break;
+
+        case 4:
+            // * This case will be called by fs server
+            // * Format: W index len data
+            if (strcmp(argv[0], "W") != 0) {
+                perror("Wrong types of command of length 4. Please input 'W [index] [len] [data]'.");
+                free(argv);
+                exit(-1);
+            } else {
+                int index = atoi(argv[1]), len = atoi(argv[2]);
+                if (index == 0 && strcmp(argv[1], "0") != 0) {
+                    perror("Invalid index number, check it out.");
+                    free(argv);
+                    exit(-1);
+                }
+                if (len == 0 && strcmp(argv[2], "0") != 0) {
+                    perror("Invalid len, check it out.");
+                    free(argv);
+                    exit(-1);
+                }
+                writeOp_client(disc, index, len, argv[3]);
+            }
 
         case 5:
             if (strcmp(argv[0], "W") != 0) {
@@ -145,10 +182,10 @@ void queryOp(Disc* disc) {
 void readOp(Disc* disc, int cylinderID, int sectorID) {
     char buf[BLOCK_SIZE + 1];
     memset(buf, 0, BLOCK_SIZE + 1);
-    if (sectorID >= disc->_numSectorPerCylinder) {
-        cylinderID += sectorID / disc->_numSectorPerCylinder;
-        sectorID %= disc->_numSectorPerCylinder;
-    }
+    // if (sectorID >= disc->_numSectorPerCylinder) {
+    //     cylinderID += sectorID / disc->_numSectorPerCylinder;
+    //     sectorID %= disc->_numSectorPerCylinder;
+    // }
     if (cylinderID < 0 || cylinderID >= disc->_numCylinder || sectorID < 0 || sectorID >= disc->_numSectorPerCylinder) {
         printf("No\n");
         return;
@@ -160,11 +197,15 @@ void readOp(Disc* disc, int cylinderID, int sectorID) {
     printf("Yes %s\n", buf);
 }
 
+void readOp_client(Disc* disc, int blockID) {
+    readOp(disc, blockID / disc->_numSectorPerCylinder, blockID % disc->_numSectorPerCylinder);
+}
+
 void writeOp(Disc* disc, int cylinderID, int sectorID, int len, char* data) {
-    if (sectorID >= disc->_numSectorPerCylinder) {
-        cylinderID += sectorID / disc->_numSectorPerCylinder;
-        sectorID %= disc->_numSectorPerCylinder;
-    }
+    // if (sectorID >= disc->_numSectorPerCylinder) {
+    //     cylinderID += sectorID / disc->_numSectorPerCylinder;
+    //     sectorID %= disc->_numSectorPerCylinder;
+    // }
     if (cylinderID < 0 || cylinderID >= disc->_numCylinder || sectorID < 0 || sectorID >= disc->_numSectorPerCylinder || len < 0 || len > BLOCK_SIZE) {
         printf("No\n");
         return;
@@ -176,4 +217,8 @@ void writeOp(Disc* disc, int cylinderID, int sectorID, int len, char* data) {
     usleep(disc->_trackDelay * abs(disc->_prev_cylinder - cylinderID));
     disc->_prev_cylinder = cylinderID;
     printf("Yes\n");
+}
+
+void writeOp_client(Disc* disc, int blockID, int len, char* data) {
+    writeOp(disc, blockID / disc->_numSectorPerCylinder, blockID % disc->_numSectorPerCylinder, len, data);
 }
