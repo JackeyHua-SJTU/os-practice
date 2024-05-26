@@ -22,8 +22,7 @@ typedef struct {
     uint16_t _ownerID;                       // * owner ID
 } Inode;
 
-Inode inode_table[MAX_INODE_NUM];
-int sockfd;
+extern Inode inode_table[MAX_INODE_NUM];
 
 // * We need a root inode, like / in linux system
 void init_root(int);

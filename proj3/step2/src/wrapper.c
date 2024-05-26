@@ -3,6 +3,11 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <stdio.h>
+
+
+char buffer[MAX_CLIENTS][MAX_LENGTH];
+char cmd[MAX_LENGTH];
 
 // ! Socket connection should be done at main function
 // TODO: Check whether \n received from the server matter

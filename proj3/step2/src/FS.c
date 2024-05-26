@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -19,8 +20,10 @@ uint16_t cur_inode_id = UINT16_MAX;
 char buffer_main[MAX_BUFFER_LENGTH];
 char path_name[MAX_BUFFER_LENGTH];
 int initialized = 0;
-int sockfd;
+static int sockfd;
 int client_id = -1;
+
+void parseCmdInput(char*);
 
 // TODO: Multi-user may format the disc server for each other
 // * Maybe can be solved only allowing the ROOT to format, namely sudo authority
@@ -373,8 +376,8 @@ void deleteOp(char* name, int pos, int len) {
     file_write(&inode_table[file_inode_id], client_id, buffer_main);
 }
 
-void parseCmdInput(char* cmd) {
-    char* token = strtok(cmd, " \n\r");
+void parseCmdInput(char* command) {
+    char* token = strtok(command, " \n\r");
     char** argv = malloc(MAX_ARGS * sizeof(char*));
     int i = 0;
     while (token != NULL) {

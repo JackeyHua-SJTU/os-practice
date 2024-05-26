@@ -1,5 +1,11 @@
 #include "superblock.h"
 #include "wrapper.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+static int sockfd;
+Superblock spbk;
 
 void init_spbk(int block_size, int fd) {
     int real_block_size = (MAX_BLOCK_NUM >= block_size) ? block_size : MAX_BLOCK_NUM;
@@ -43,6 +49,9 @@ int alloc_block() {
                 spbk._block_count++;
                 spbk._vacant_block_count--;
                 update_spbk();
+                char buf[BLOCK_SIZE];
+                memset(buf, 0, sizeof(buf));
+                write1(sockfd, 0, blockID, BLOCK_SIZE, buf);
                 return blockID;
             }
         }

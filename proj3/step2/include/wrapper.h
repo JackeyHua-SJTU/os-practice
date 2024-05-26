@@ -11,8 +11,8 @@
 // * Write the response of disc server to the correspond index
 // ! Notice the cliend 0 is the root user
 // ! Those id >= 1 are real clients
-char buffer[MAX_CLIENTS][MAX_LENGTH];
-char cmd[MAX_LENGTH];
+extern char buffer[MAX_CLIENTS][MAX_LENGTH];
+extern char cmd[MAX_LENGTH];
 
 void query(int sockfd, uint16_t client_id);
 

@@ -5,6 +5,9 @@
 #include <time.h>
 #include <string.h>
 
+static int sockfd;
+Inode inode_table[MAX_INODE_NUM];
+
 // TODO: Change the permission of every inode
 // TODO: Check whether `strcat()` work as expected in file operation function
 
@@ -303,7 +306,7 @@ void dir_ls(Inode* inode, char* ans) {
             strcat(buf, " ");
         }
     }
-    strcat(buf, '\0');
+    // strcat(buf, '\0');
     strcpy(ans, buf);
 }
 
@@ -360,7 +363,7 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
             for (int i = 0; i < need; ++i) {
                 if (inode->_direct_block[i] == 0) return; // ! Never happen
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + i * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + i * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, buf);
             }
             for (int i = need; i < DIRECT_LINK; ++i) {
@@ -377,16 +380,18 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
             for (int i = 0; i < DIRECT_LINK; ++i) {
                 if (inode->_direct_block[i] == 0) return; // ! Never happen
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + i * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + i * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, buf);
             }
             if (inode->_indirect_block == 0) return;  // ! Never happen
             uint16_t indirect_blockid[128];
             memset(indirect_blockid, 0, sizeof(indirect_blockid));
+            read1(sockfd, clientID, inode->_indirect_block);
+            memcpy(indirect_blockid, buffer[clientID], BLOCK_SIZE);
             for (int i = 0; i < need - DIRECT_LINK; ++i) {
                 if (indirect_blockid[i] == 0) return; // ! Never happen
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + (i + DIRECT_LINK) * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + (i + DIRECT_LINK) * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, indirect_blockid[i], BLOCK_SIZE, buf);
             }
             for (int i = need - DIRECT_LINK; i < inode->_direct_count - DIRECT_LINK; ++i) {
@@ -395,7 +400,9 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
                     indirect_blockid[i] = 0;
                 }
             }
-            write1(sockfd, clientID, inode->_indirect_block, BLOCK_SIZE, indirect_blockid);
+            memset(buf, 0, sizeof(buf));
+            memcpy(buf, indirect_blockid, BLOCK_SIZE);
+            write1(sockfd, clientID, inode->_indirect_block, BLOCK_SIZE, buf);
         }
     } else {
         if (need <= DIRECT_LINK) {
@@ -406,7 +413,7 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
                     inode->_direct_block[i] = blockID;
                 }
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + i * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + i * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, buf);
             }
             if (inode->_indirect_block != 0) {
@@ -421,16 +428,20 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
                     inode->_direct_block[i] = blockID;
                 }
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + i * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + i * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, buf);
             }
+            uint16_t indirect_blockid[128];
+            memset(indirect_blockid, 0, sizeof(indirect_blockid));
             if (inode->_indirect_block == 0) {
                 int blockID = alloc_block();
                 if (blockID < 0) return; // ! Could happen
                 inode->_indirect_block = blockID;
+            } else {
+                read1(sockfd, clientID, inode->_indirect_block);
+                memcpy(indirect_blockid, buffer[clientID], BLOCK_SIZE);
             }
-            uint16_t indirect_blockid[128];
-            memset(indirect_blockid, 0, sizeof(indirect_blockid));
+            
             for (int i = 0; i < need - DIRECT_LINK; ++i) {
                 if (indirect_blockid[i] == 0) {
                     int blockID = alloc_block();
@@ -438,10 +449,12 @@ void file_write(Inode* inode, uint16_t clientID, char* src) {
                     indirect_blockid[i] = blockID;
                 }
                 memset(buf, 0, sizeof(buf));
-                memcpy(buf, src_cp + (i + DIRECT_LINK) * BLOCK_SIZE, BLOCK_SIZE);
+                memcpy(buf, src_real + (i + DIRECT_LINK) * BLOCK_SIZE, BLOCK_SIZE);
                 write1(sockfd, clientID, indirect_blockid[i], BLOCK_SIZE, buf);
             }
-            write1(sockfd, clientID, inode->_indirect_block, BLOCK_SIZE, indirect_blockid);
+            memset(buf, 0, sizeof(buf));
+            memcpy(buf, indirect_blockid, BLOCK_SIZE);
+            write1(sockfd, clientID, inode->_indirect_block, BLOCK_SIZE, buf);
         }
     }
     inode->_direct_count = need;

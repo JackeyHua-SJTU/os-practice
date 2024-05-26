@@ -21,8 +21,7 @@ typedef struct {
     uint32_t _block_bitmap[BLOCK_BITMAP_SIZE];
 } Superblock;
 
-Superblock spbk;
-int sockfd;
+extern Superblock spbk;
 
 void init_spbk(int, int);
 
