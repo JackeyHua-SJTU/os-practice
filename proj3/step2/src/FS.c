@@ -20,7 +20,10 @@ char buffer_main[MAX_BUFFER_LENGTH];
 char path_name[MAX_BUFFER_LENGTH];
 int initialized = 0;
 int sockfd;
-int client_id = 0;
+int client_id = -1;
+
+// TODO: Multi-user may format the disc server for each other
+// * Maybe can be solved only allowing the ROOT to format, namely sudo authority
 
 int main(int argc, char** argv) {
     if (argc != 4) {
@@ -29,7 +32,98 @@ int main(int argc, char** argv) {
     }
     int disc_port = atoi(argv[2]);
     int fs_port = atoi(argv[3]);
+    struct sockaddr_in disc_servaddr;
 
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Socket creation failed");
+        exit(-1);
+    }
+
+    memset(&disc_servaddr, 0, sizeof(disc_servaddr));
+    disc_servaddr.sin_family = AF_INET;
+    disc_servaddr.sin_port = htons(disc_port);
+
+    if (inet_pton(AF_INET, argv[1], &disc_servaddr.sin_addr) <= 0) {
+        perror("Invalid address/ Address not supported");
+        exit(-1);
+    }
+
+    if (connect(sockfd, (struct sockaddr*)&disc_servaddr, sizeof(disc_servaddr)) < 0) {
+        perror("Connection Failed");
+        exit(-1);
+    }
+
+    printf("Connected to the disc server.\n");
+
+    // * Then make this file system a server.
+    int listenfd, connfd;
+    int optval = 1;
+    struct sockaddr_in servaddr, client_addr;
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listenfd == -1) {
+        perror("socket");
+        close(listenfd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) == -1) {
+        perror("setsockopt");
+        close(listenfd);
+        exit(EXIT_FAILURE);
+    }
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(fs_port);
+
+    if (bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(listenfd, MAX_CLIENTS) == -1) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1) {
+        socklen_t client_len = sizeof(client_addr);
+        connfd = accept(listenfd, (struct sockaddr*)&client_addr, &client_len);
+
+        if (connfd == -1) {
+            perror("accept");
+            continue;
+        }
+        ++client_id;
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            close(connfd);
+            close(listenfd);
+            exit(EXIT_FAILURE);
+        }
+
+        if (pid == 0) {
+            close(listenfd);
+            char input[MAX_BUFFER_LENGTH];
+            dup2(connfd, 1);
+            dup2(connfd, 2);
+            while (1) {
+                memset(input, 0, MAX_BUFFER_LENGTH);
+                int recv_len = recv(connfd, input, MAX_BUFFER_LENGTH - 1, 0);
+                if (recv_len < 0) {
+                    perror("Receive failed");
+                    exit(-1);
+                }
+                parseCmdInput(input);
+                fflush(stdout);
+                fflush(stderr);
+            }
+            close(connfd);
+            exit(0);
+        }
+        close(connfd);
+    }
 }
 
 int validate_name(char* name) {

@@ -3,7 +3,7 @@
 #ifndef _WRAPPER_H_
 #define _WRAPPER_H_
 
-#define MAX_CLENTS 6
+#define MAX_CLIENTS 6
 #define MAX_LENGTH 1024
 
 #include <stdint.h>
@@ -11,7 +11,7 @@
 // * Write the response of disc server to the correspond index
 // ! Notice the cliend 0 is the root user
 // ! Those id >= 1 are real clients
-char buffer[MAX_CLENTS][MAX_LENGTH];
+char buffer[MAX_CLIENTS][MAX_LENGTH];
 char cmd[MAX_LENGTH];
 
 void query(int sockfd, uint16_t client_id);
