@@ -1,7 +1,7 @@
 #include "superblock.h"
 #include "wrapper.h"
 
-void init(int block_size, int fd) {
+void init_spbk(int block_size, int fd) {
     int real_block_size = (MAX_BLOCK_NUM >= block_size) ? block_size : MAX_BLOCK_NUM;
     if (real_block_size <= RESERVE_BLOCK_NUM) {
         printf("Block size is too small.\n");

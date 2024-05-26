@@ -8,7 +8,7 @@
 // TODO: Change the permission of every inode
 // TODO: Check whether `strcat()` work as expected in file operation function
 
-void init(int fd) {
+void init_root(int fd) {
     Inode root;
     // * This is the root DIRECTORY.
     root._mode = 1;
@@ -148,7 +148,7 @@ void init_inode(Inode* inode, uint8_t mode, uint8_t direct_count, uint16_t file_
     inode->_indirect_block = 0;
     inode->_permission = permission;
     inode->_ownerID = ownerID;
-    write_inode(inode, ownerID, index);
+    write_inode_to_disc(inode, ownerID, index);
 }
 
 int dir_check_existence(Inode* inode, uint8_t mode, char* name) {

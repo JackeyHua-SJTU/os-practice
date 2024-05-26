@@ -24,7 +24,7 @@ typedef struct {
 Superblock spbk;
 int sockfd;
 
-void init(int, int);
+void init_spbk(int, int);
 
 void update_spbk();
 

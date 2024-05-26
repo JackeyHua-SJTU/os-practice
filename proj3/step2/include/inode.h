@@ -26,7 +26,7 @@ Inode inode_table[MAX_INODE_NUM];
 int sockfd;
 
 // * We need a root inode, like / in linux system
-void init(int);
+void init_root(int);
 
 void update_inode_table();
 
