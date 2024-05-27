@@ -56,7 +56,6 @@ void decontructor(Disc* disc) {
 }
 
 void parseCmdInput(Disc* disc, char* cmd) {
-    // printf("Input is %s\n", cmd);
     char* token = strtok(cmd, " \n\r");
     char** argv = malloc(MAX_ARGS * sizeof(char*));
     int i = 0;

@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
                     write(clientfd, "Goodbye.\n", 9);
                     break;
                 }
-                // printf("Input is %s", input);
+                // perror(input);
                 // input[n] = '\0';
                 parseCmdInput(&d, input);
                 // * Manually flush stdout buffer
