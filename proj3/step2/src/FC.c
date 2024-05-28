@@ -5,6 +5,9 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#define RESPONSE_SIZE 30000
+#define MAX_CMD_SIZE 512
+
 int main(int argc, char** argv) {
     if (argc != 3) {
         printf("Usage: [server IP] [port].\n");
@@ -34,31 +37,56 @@ int main(int argc, char** argv) {
     }
 
     printf("Connected to the server.\n");
-    char command[512];
-    char response[1024];
+    char command[MAX_CMD_SIZE];
+    char response[RESPONSE_SIZE];
+    char wd[RESPONSE_SIZE];
 
     while (1) {
-        printf("Disc Query: ");
-        memset(command, 0, 512);
-        fgets(command, 512, stdin);
-        if (send(sockfd, command, sizeof(command), 0) < 0) {
+        memset(wd, 0, RESPONSE_SIZE);
+        int bytes_received = recv(sockfd, wd, RESPONSE_SIZE - 1, 0);
+        printf("%s", wd);
+        // fflush(stdout);
+        memset(command, 0, MAX_CMD_SIZE);
+        fgets(command, MAX_CMD_SIZE, stdin);
+        // printf("Receive command %s\n", command);
+        if (send(sockfd, command, strlen(command), 0) < 0) {
             perror("Send failed");
             exit(-1);
         }
-        memset(response, 0, 1024); 
-        int recv_len = recv(sockfd, response, 1023, 0); 
-        if (recv_len < 0) {
-            perror("Receive failed");
-            exit(-1);
-        } else if (recv_len == 0) {
-            break;
-        }
-        printf("Response: %s\n", response);
-        fflush(stdout);
-        fflush(stderr);
+        memset(response, 0, RESPONSE_SIZE); 
+
+        // int recv_len = recv(sockfd, response, RESPONSE_SIZE - 1, 0); 
+        // int recv_len = recv(sockfd, response, RESPONSE_SIZE - 1, 0);
+        // if (recv_len < 0) {
+        //     perror("Receive failed");
+        //     exit(-1);
+        // } else if (recv_len == 0) {
+        //     break;
+        // }
+
         if (strcmp(strtok(command, " \n\r"), "e") == 0) {
             break;
         }
+        int totalRead = 0;
+        int read21;
+        while (1) {
+            read21 = read(sockfd, response + totalRead, 1);
+            if (read21 < 0) {
+                perror("Receive failed");
+                exit(-1);
+            } else if (read21 == 0) {
+                break;
+            }
+            totalRead += read21;
+            // printf("totalRead = %d\n", totalRead);
+            if (response[totalRead - 1] == '\n') break;
+            // response[totalRead] = '\0';
+        }
+
+        printf("%s\n", response);
+        // fflush(stdout);
+        // fflush(stderr);
+        
     }
 
 }

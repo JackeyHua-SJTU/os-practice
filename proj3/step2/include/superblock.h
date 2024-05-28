@@ -27,6 +27,8 @@ void init_spbk(int, int);
 
 void update_spbk();
 
+void print_spbk();
+
 int alloc_block();
 
 int gc_block(uint16_t, uint16_t);

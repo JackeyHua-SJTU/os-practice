@@ -4,6 +4,7 @@
 #include "entry.h"
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 static int sockfd;
 Inode inode_table[MAX_INODE_NUM];
@@ -13,22 +14,24 @@ Inode inode_table[MAX_INODE_NUM];
 
 void init_root(int fd) {
     Inode root;
-    // * This is the root DIRECTORY.
-    root._mode = 1;
-    root._direct_count = 0;
-    root._last_modified_timestamp = time(NULL);
-    root._file_size = 0;
-    root._index = 0;
-    root._fa_index = 0;
-    memset(root._direct_block, 0, sizeof(root._direct_block));
-    root._indirect_block = 0;
-    root._permission = -1;
-    root._ownerID = 0;
     memset(inode_table, 0, sizeof(inode_table));
-    inode_table[0] = root;
+    // * This is the root DIRECTORY.
+    inode_table[0]._mode = 1;
+    inode_table[0]._direct_count = 0;
+    inode_table[0]._last_modified_timestamp = time(NULL);
+    inode_table[0]._file_size = 0;
+    inode_table[0]._index = 0;
+    inode_table[0]._fa_index = 0;
+    memset(inode_table[0]._direct_block, 0, sizeof(inode_table[0]._direct_block));
+    inode_table[0]._indirect_block = 0;
+    inode_table[0]._permission = -1;
+    inode_table[0]._ownerID = 0;
     spbk._inode_bitmap[0] |= (1 << 31);
     sockfd = fd;
-    write_inode_to_disc(&root, 0, 0);
+    printf("fd in inode.c is %d\n", sockfd);
+    printf("Init root inode.\n");
+    write_inode_to_disc(&inode_table[0], 0, 0);
+    printf("Init root inode done.\n");
     update_spbk();
 }
 
@@ -132,12 +135,14 @@ int gc_inode_recursive(Inode* inode, uint16_t clientID) {
 
 
 void write_inode_to_disc(Inode* inode, uint16_t clientID, int index) {
-    int blockID = index / 32 + 3;
-    int offset = index % 32;
-    char buf[BLOCK_SIZE];
+    int blockID = index / 8 + 3;
+    int offset = index % 8;
+    Inode buf[8];
     read1(sockfd, clientID, blockID);
-    memcpy(buf + offset * sizeof(Inode), inode, sizeof(Inode));
-    write1(sockfd, clientID, blockID, BLOCK_SIZE, buf);
+    memcpy(buf, buffer[clientID], BLOCK_SIZE);
+    buf[offset] = *inode;
+    // printf("buf is %s\n", buf);
+    write1(sockfd, clientID, blockID, BLOCK_SIZE, (void*)buf);
 }
 
 void init_inode(Inode* inode, uint8_t mode, uint8_t direct_count, uint16_t file_size, uint16_t index, uint16_t fa_index, uint16_t permission, uint16_t ownerID) {
@@ -174,12 +179,12 @@ int dir_check_existence(Inode* inode, uint8_t mode, char* name) {
     return -1;
 }
 
-void dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
+int dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
     // * Make sure it is a DIR type inode
     if (inode->_mode != 1) {
-        return;
+        return -1;
     }
-    if (dir_check_existence(inode, mode, name) != -1) return;
+    if (dir_check_existence(inode, mode, name) != -1) return 0;
     Entry entry[BLOCK_SIZE / sizeof(Entry)];
     char wb_buf[BLOCK_SIZE];
     // * We first check if there are vacant entry in allocated block
@@ -194,7 +199,7 @@ void dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
             int inodeID = alloc_inode();
             if (inodeID == -1) {
                 // * No more inode
-                return;
+                return -1;
             }
             entry[j]._inode_id = inodeID;
             entry[j]._state = 1;
@@ -206,7 +211,7 @@ void dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
             memcpy(wb_buf, entry, BLOCK_SIZE);
             write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, wb_buf);
             write_inode_to_disc(inode, clientID, inode->_index);
-            return;
+            return 1;
         }
     }
     // * No vacant entry in allocated block
@@ -231,15 +236,15 @@ void dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
         memcpy(wb_buf, entry, BLOCK_SIZE);
         write1(sockfd, clientID, inode->_direct_block[i], BLOCK_SIZE, wb_buf);
         write_inode_to_disc(inode, clientID, inode->_index);
-        return;
+        return 1;
     }
     // TODO: Add indirect link check
 }
 
-void dir_del_entry(Inode* inode, uint16_t clientID, char* name) {
-    if (inode->_mode != 1) return;
+int dir_del_entry(Inode* inode, uint16_t clientID, char* name) {
+    if (inode->_mode != 1) return -1;
     int id = dir_check_existence(inode, 0, name);
-    if (id == -1) return;
+    if (id == -1) return 0;
     Entry entry[BLOCK_SIZE / sizeof(Entry)];
     char wb_buf[BLOCK_SIZE];
     for (int i = 0; i < DIRECT_LINK; ++i) {
@@ -257,16 +262,16 @@ void dir_del_entry(Inode* inode, uint16_t clientID, char* name) {
                 gc_inode(&inode_table[id], clientID);
                 inode->_last_modified_timestamp = time(NULL);
                 write_inode_to_disc(inode, clientID, inode->_index);
-                return;
+                return 1;
             }
         }
     }
 }
 
-void dir_del_entry_recursive(Inode* inode, uint16_t clientID, char* name) {
-    if (inode->_mode != 1) return;
+int dir_del_entry_recursive(Inode* inode, uint16_t clientID, char* name) {
+    if (inode->_mode != 1) return -1;
     int id = dir_check_existence(inode, 1, name);
-    if (id == -1) return;
+    if (id == -1) return 0;
     Entry entry[BLOCK_SIZE / sizeof(Entry)];
     char wb_buf[BLOCK_SIZE];
     for (int i = 0; i < DIRECT_LINK; ++i) {
@@ -284,7 +289,7 @@ void dir_del_entry_recursive(Inode* inode, uint16_t clientID, char* name) {
                 gc_inode_recursive(&inode_table[id], clientID);
                 inode->_last_modified_timestamp = time(NULL);
                 write_inode_to_disc(inode, clientID, inode->_index);
-                return;
+                return 1;
             }
         }
     }
@@ -302,8 +307,14 @@ void dir_ls(Inode* inode, char* ans) {
         memcpy(entry, buffer[inode->_ownerID], BLOCK_SIZE);
         for (int j = 0; j < BLOCK_SIZE / sizeof(Entry); ++j) {
             if (entry[j]._state == 0) continue;
-            strcat(buf, entry[j]._name);
-            strcat(buf, " ");
+            if (entry[j]._type == 1) {
+                strcat(buf, "\033[1;32m");
+                strcat(buf, entry[j]._name);
+                strcat(buf, "\033[0m ");
+            } else {
+                strcat(buf, entry[j]._name);
+                strcat(buf, " ");
+            }
         }
     }
     // strcat(buf, '\0');

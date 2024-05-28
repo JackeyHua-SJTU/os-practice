@@ -42,11 +42,11 @@ void init_inode(Inode*, uint8_t, uint8_t, uint16_t, uint16_t, uint16_t, uint16_t
 // ! Dir-level function
 int dir_check_existence(Inode*, uint8_t, char*);
 
-void dir_add_entry(Inode*, uint16_t, char*, uint8_t);
+int dir_add_entry(Inode*, uint16_t, char*, uint8_t);
 
-void dir_del_entry(Inode*, uint16_t, char*);
+int dir_del_entry(Inode*, uint16_t, char*);
 
-void dir_del_entry_recursive(Inode*, uint16_t, char*);
+int dir_del_entry_recursive(Inode*, uint16_t, char*);
 
 void dir_ls(Inode*, char*);
 
