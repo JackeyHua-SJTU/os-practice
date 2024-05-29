@@ -40,7 +40,7 @@ void fOp();
 void sig_handler(int signo) {
     if (signo == SIGINT) {
         decontructor(&d);
-        // exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -115,9 +115,8 @@ int main(int argc, char** argv) {
                 break;
 
             case 4:
-                // memset(path_name, 0, MAX_BUFFER_LENGTH);
-                // strcpy(path_name, token);
-                // initialized = 1;
+                initialized = atoi(token);
+                printf("init from disc is %d\n", initialized);
                 break;
             default:
                 break;
@@ -128,7 +127,40 @@ int main(int argc, char** argv) {
 
         constructor(c, r, dly, name, &d);
         printf("success constructor, with c : %d, r : %d\n", c, r);
-        fOp();
+        // fOp();
+
+        if (initialized == 1) {
+                cur_inode_id = 0;
+                memset(path_name, 0, MAX_BUFFER_LENGTH);
+                strcpy(path_name, "/");
+                memset(&spbk, 0, sizeof(Superblock));
+                memset(inode_table, 0, sizeof(Inode) * MAX_INODE_NUM);
+                char bufff[256 * 3];
+                for (int i = 0; i < 3; ++i) {
+                    char* temp = readOp_client(&d, i);
+                    memcpy(bufff + i * 256, temp, 256);
+                }
+                memcpy(&spbk, bufff, sizeof(Superblock));
+                printf("inode_count: %d\n", spbk._inode_count);
+                printf("block_count: %d\n", spbk._block_count);
+                printf("vacant_inode_count: %d\n", spbk._vacant_inode_count);
+                printf("vacant_block_count: %d\n", spbk._vacant_block_count);
+                char buffff[256];
+                memset(buffff, 0, 256);
+                for (int i = 0; i < 128; ++i) {
+                    char* temp = readOp_client(&d, i + 3);
+                    memcpy(buffff, temp, 256);
+                    memcpy(&inode_table[i * 8], buffff, 256);
+                }
+                // memset(buffff, 0, 256);
+                // char* temp = readOp_client(&d, 131);
+                // memcpy(buffff, temp, 256);
+                // memcpy(user, buffff, 256);
+                // printf("user[1] has name %s\n", user[1]._user_id);
+                user_count = 6;
+        } else {
+            fOp();
+        }
 
     // int pipefd[2];
     // int wbfd[2];
@@ -757,6 +789,21 @@ void crOp(char* name, char* key) {
         strcat(buffer_main, "You can only create user when you are in / path");
         return;
     } 
+    if (client_id != 0) {
+        strcat(buffer_main, "Permission denied. cr needs super permission.");
+        return;
+    }
+    User temp[8];
+    read1(sockfd, 0, 131);
+    memcpy(temp, buffer[0], sizeof(temp));
+
+    for (int i = 0; i < 8; ++i) {
+        if (strlen(temp[i]._user_id) == 0) {
+            user_count = i;
+            break;
+        }
+    }
+
     if (user_count >= 6) {
         strcat(buffer_main, "Exceed maximum clients. At most 5!");
         return;
@@ -768,9 +815,7 @@ void crOp(char* name, char* key) {
     memset(cur_user._user_key, 0, sizeof(cur_user._user_key));
     strcpy(cur_user._user_key, key);
     // * wb
-    User temp[8];
-    read1(sockfd, 0, 131);
-    memcpy(temp, buffer[0], sizeof(temp));
+
     memcpy(temp + user_count, &cur_user, sizeof(cur_user));
     write1(sockfd, 0, 131, sizeof(temp), temp);
     user_count += 1;
@@ -779,6 +824,7 @@ void crOp(char* name, char* key) {
     strcat(buffer_main, "Successfully create user ");
     strcat(buffer_main, name);
     mkdirOp(name);
+    client_id = 0;
 }
 
 void login(char* name, char* key) {
@@ -798,13 +844,20 @@ void login(char* name, char* key) {
     User temp[8];
     read1(sockfd, 0, 131);
     memcpy(temp, buffer[0], sizeof(temp));
+    for (int i = 0; i < 8; ++i) {
+        if (strlen(temp[i]._user_id) == 0) {
+            user_count = i;
+            break;
+        }
+    }
+    printf("user count is %d\n", user_count);
     for (int i = 0; i < user_count; ++i) {
         printf("temp id is %s, key is %s\n", temp[i]._user_id, temp[i]._user_key);
         if (strcmp(temp[i]._user_id, name) == 0 && strcmp(temp[i]._user_key, key) == 0) {
             client_id = i;
-            strcat(buffer_main, "Successfully login as ");
-            strcat(buffer_main, name);
             cdOp(name);
+            strcat(buffer_main, "\nSuccessfully login as ");
+            strcat(buffer_main, name);
             return;
         }
     }

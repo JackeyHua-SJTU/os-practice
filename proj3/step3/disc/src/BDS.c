@@ -121,7 +121,10 @@ int main(int argc, char** argv) {
                 strcat(info, argv[4]);
                 if (initial) {
                     strcat(info, " ");
-                    strcat(info, backupPath);
+                    strcat(info, "1");
+                } else {
+                    strcat(info, " ");
+                    strcat(info, "0");
                 }
                 info[strlen(info)] = '\0';
 
@@ -158,9 +161,11 @@ int main(int argc, char** argv) {
                 }
                 printf("Connect to a fs client\n");
                 while (1) {
+                    initial = 1;
                     memset(input, 0, sizeof(input));
                     int n = read(clientfd, input, sizeof(input));
                     // printf("input is %s\n", input);
+                    if (n == 0) break;
                     char* token = strtok(input, " \n\r");
                     int breakFlag = 0;
                     while (token != NULL) {

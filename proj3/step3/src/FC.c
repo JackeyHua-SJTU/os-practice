@@ -63,7 +63,9 @@ int main(int argc, char** argv) {
         // } else if (recv_len == 0) {
         //     break;
         // }
-
+        if (strcmp(strtok(command, " \n\r"), "e") == 0) {
+            break;
+        }
         
         int totalRead = 0;
         int read21;
