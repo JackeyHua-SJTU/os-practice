@@ -61,19 +61,19 @@ int main(int argc, char** argv) {
 
     // TODO: Add a decent end way when server sends error info and exit(-1);
     for (int i = 0; i < N; ++i) {
-        int op = rand() % 3;
+        int op = rand() % 2;
         memset(cmd, 0, MAX_INPUT);
         memset(response, 0, MAX_RESPONSE);
         switch (op)
         {
-        case 0:
-            sprintf(cmd, "I\n");
-            send(sockfd, cmd, sizeof(cmd), 0);
-            recv(sockfd, response, sizeof(response) - 1, 0);
-            printf("Operation %d is I, Success\n", i);
-            break;
+        // case 0:
+        //     sprintf(cmd, "I\n");
+        //     send(sockfd, cmd, sizeof(cmd), 0);
+        //     recv(sockfd, response, sizeof(response) - 1, 0);
+        //     printf("Operation %d is I, Success\n", i);
+        //     break;
         
-        case 1:
+        case 0:
             int c = rand() % cyclinderNum;
             int r = rand() % sectorPerCylinder;
             sprintf(cmd, "R %d %d\n", c, r);
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
             printf("Operation %d is R %d %d, Success\n", i, c, r);
             break;
 
-        case 2:
+        case 1:
             c = rand() % cyclinderNum;
             r = rand() % sectorPerCylinder;
             char data[257];
