@@ -41,6 +41,7 @@ void constructor(int numCylinder, int numSectorPerCylinder, double trackDelay, c
 
 void decontructor(Disc* disc) {
     // free(disc->_file);
+    fsync(disc->_fd);
     int result = munmap(disc->_discfile, BLOCK_SIZE * disc->_numCylinder * disc->_numSectorPerCylinder);
     if (result == -1) {
         perror("Error when unmmaping the memory space allocated to the file.");

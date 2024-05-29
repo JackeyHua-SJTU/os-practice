@@ -30,8 +30,16 @@ void parseCmd(char*);
 void fOp();
 void sig_handler(int signo) {
     if (signo == SIGINT) {
+    //     for (int i = 0; i < 5; ++i) {
+    //     printf("inode %d has mode %d\n", i, inode_table[i]._mode);
+    //     printf("inode %d has count %d\n", i, inode_table[i]._direct_count);
+    //     printf("inode %d has index %d\n", i, inode_table[i]._index);
+    //     printf("inode %d has fa index %d\n", i, inode_table[i]._fa_index);
+    // }
+        
+        // printf("wb\n");
         decontructor(&d);
-        // exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -106,9 +114,8 @@ int main(int argc, char** argv) {
             break;
 
         case 4:
-            // memset(path_name, 0, MAX_BUFFER_LENGTH);
-            // strcpy(path_name, token);
-            // initialized = 1;
+            initialized = atoi(token);
+            printf("init from disc is %d\n", initialized);
             break;
         default:
             break;
@@ -119,6 +126,50 @@ int main(int argc, char** argv) {
 
     constructor(c, r, dly, name, &d);
     // fOp();
+    if (initialized == 1) {
+                cur_inode_id = 0;
+                memset(path_name, 0, MAX_BUFFER_LENGTH);
+                strcpy(path_name, "/");
+                memset(&spbk, 0, sizeof(Superblock));
+                memset(inode_table, 0, sizeof(Inode) * MAX_INODE_NUM);
+                char bufff[256 * 3];
+                for (int i = 0; i < 3; ++i) {
+                    char* temp = readOp_client(&d, i);
+                    memcpy(bufff + i * 256, temp, 256);
+                }
+                memcpy(&spbk, bufff, sizeof(Superblock));
+                printf("inode_count: %d\n", spbk._inode_count);
+                printf("block_count: %d\n", spbk._block_count);
+                printf("vacant_inode_count: %d\n", spbk._vacant_inode_count);
+                printf("vacant_block_count: %d\n", spbk._vacant_block_count);
+                char buffff[256];
+                for (int i = 0; i < 128; ++i) {
+                    char* temp = readOp_client(&d, i + 3);
+                    memcpy(buffff, temp, 256);
+                    memcpy(&inode_table[i * 8], buffff, 256);
+                }
+    }
+    // Superblock sppp;
+    // char bufff[256 * 3];
+    // memset(bufff, 0, 256);
+    // char* temp_ans = readOp_client(&d, 0);
+    // memcpy(bufff, temp_ans, 256);
+    // temp_ans = readOp_client(&d, 1);
+    // memcpy(bufff + 256, temp_ans, 256);
+    // temp_ans = readOp_client(&d, 2);
+    // memcpy(bufff + 256 * 2, temp_ans, 256);
+    // memcpy(&sppp, bufff, sizeof(Superblock));
+    // printf("inode_count: %d\n", sppp._inode_count);
+    // printf("block_count: %d\n", sppp._block_count);
+    // printf("vacant_inode_count: %d\n", sppp._vacant_inode_count);
+    // printf("vacant_block_count: %d\n", sppp._vacant_block_count);
+
+    // for (int i = 0; i < 5; ++i) {
+    //     printf("inode %d has mode %d\n", i, inode_table[i]._mode);
+    //     printf("inode %d has count %d\n", i, inode_table[i]._direct_count);
+    //     printf("inode %d has index %d\n", i, inode_table[i]._index);
+    //     printf("inode %d has fa index %d\n", i, inode_table[i]._fa_index);
+    // }
 
     // printf("disc %d %d %f %s %s\n", d._numCylinder, d._numSectorPerCylinder, d._trackDelay, d._file, d._discfile);
 
@@ -265,6 +316,9 @@ void lsOp() {
 
 void eOp() {
     printf("Good Bye\n");
+    update_spbk();
+    update_inode_table();
+    printf("wb success\n");
     char temp[MAX_BUFFER_LENGTH];
     memset(temp, 0, MAX_BUFFER_LENGTH);
     strcat(temp, path_name);
