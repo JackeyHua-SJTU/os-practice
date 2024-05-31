@@ -1,3 +1,6 @@
+/*
+    * Multi client info struct, named User
+*/
 #ifndef _USER_H_
 #define _USER_H_
 

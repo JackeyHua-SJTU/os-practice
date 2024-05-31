@@ -1,3 +1,6 @@
+/*
+    * File system server
+*/
 #include "inode.h"
 #include "superblock.h"
 #include "wrapper.h"

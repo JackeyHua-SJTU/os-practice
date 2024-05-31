@@ -1,3 +1,6 @@
+/*
+    * Superblock struct
+*/
 #ifndef _SUPERBLOCK_H_
 #define _SUPERBLOCK_H_
 

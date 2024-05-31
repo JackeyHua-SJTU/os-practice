@@ -1,3 +1,6 @@
+/*
+    * Wrapper function definition
+*/
 #include "disc.h"
 #include "wrapper.h"
 #include <netinet/in.h>

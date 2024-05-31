@@ -1,3 +1,6 @@
+/*
+    * Disc Struct Implementation
+*/
 #include "disc.h"
 #include <sys/mman.h>
 #include <fcntl.h>

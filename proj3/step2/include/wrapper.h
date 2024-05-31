@@ -1,3 +1,6 @@
+/*
+    * Wrapper Function Declaration
+*/
 // * Wrap disc read/write/query operations
 // * Supply a much more user-friendly interface for file system
 #ifndef _WRAPPER_H_

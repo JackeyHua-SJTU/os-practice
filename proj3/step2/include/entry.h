@@ -1,3 +1,6 @@
+/*
+    * Directory type inode Entry Struct
+*/
 #ifndef _ENTRY_H_
 #define _ENTRY_H_
 

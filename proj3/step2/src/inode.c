@@ -1,3 +1,6 @@
+/*
+    * Inode struct and related operation functions
+*/
 #include "inode.h"
 #include "superblock.h"
 #include "wrapper.h"

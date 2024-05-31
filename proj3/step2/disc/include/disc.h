@@ -1,3 +1,6 @@
+/*
+    * Disc Struct
+*/
 #ifndef _DISC_H_
 #define _DISC_H_
 

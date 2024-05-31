@@ -1,3 +1,7 @@
+/*
+    * Wrapper function for read/write operation
+    * Definition
+*/
 #include "disc.h"
 #include "user.h"
 #include "wrapper.h"

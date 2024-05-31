@@ -1,3 +1,6 @@
+/*
+    * Superblock struct and related operation functions
+*/
 #include "superblock.h"
 #include "wrapper.h"
 #include <stdio.h>
