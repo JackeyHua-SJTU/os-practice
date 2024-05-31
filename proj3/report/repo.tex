@@ -1,0 +1,113 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[12pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{graphicx} % Required for the inclusion of images
+\usepackage{subfigure} % Required for the inclusion of images
+\usepackage{natbib} % Required to change bibliography style to APA
+\usepackage{amsmath} % Required for some math elements 
+\usepackage{tcolorbox}
+%\usepackage{tgbonum}
+% \usepackage{indentfirst}
+\usepackage{underscore}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+% \usepackage{sectsty}
+\usepackage{xcolor}
+\usepackage{color}
+% \usepackage{fix-cm}
+\usepackage{url}
+\usepackage[nottoc,numbib]{tocbibind} % show reference in toc
+\usepackage[vlined,ruled,linesnumbered]{algorithm2e}
+%\usepackage[english]{babel}
+\usepackage{subfiles}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{tipa}
+\usepackage{todonotes}
+\usepackage[bottom]{footmisc}
+\usepackage{hologo}
+\providecommand{\XeTeX}{\hologo{XeTeX}}
+\providecommand\pkg[1]{{\sffamily#1}}
+
+\graphicspath{{figures/}}
+% \CTEXsetup[format={\Large\bfseries}]{section}
+\pagestyle{fancy}
+% \renewcommand{\baselinestretch}{1.2}
+% \renewcommand{\figurename}{图}
+% \renewcommand{\tablename}{表}   
+
+\hypersetup{colorlinks=true,linkcolor={black},urlcolor={purple}}
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\title{\textbf{Project3: Design and Implementation of file system}} % Title
+\author{
+\begin{tabular}{ll}
+  \textit{JackeyHua} & jackeyhua@sjtu.edu.cn \\
+\end{tabular}
+}
+\date{\today} % Date for the report
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{mauve}{rgb}{0.58,0,0.50}
+
+\lstset{
+language=python,                        % Code language
+basicstyle=\small\ttfamily,             % Code font, Examples: \footnotesize, \ttfamily
+keywordstyle=\color{purple},            % Keywords font ('*' = uppercase)
+commentstyle=\em\color{gray},           % Comments font
+numbers=left,                           % Line nums position
+numberstyle=\tiny\ttfamily,             % Line-numbers fonts
+stringstyle=\color{mauve},
+stepnumber=1,                           % Step between two line-numbers
+numbersep=5pt,                          % How far are line-numbers from the code
+frame=tb,                               % A frame around the code
+aboveskip=3mm,
+belowskip=3mm,
+tabsize=4,                              % Default tab size
+captionpos=b,                           % Caption-position = bottom
+breaklines=true,                        % Automatic line breaking?
+breakatwhitespace=false,                % Automatic breaks only at white space?
+showspaces=false,                       % Don't make spaces visible
+showstringspaces=false,
+showtabs=false,                         % Don't make tables visible
+basewidth=0.5em,
+morekeywords={True, False},
+columns=flexible,
+keepspaces=true
+}
+
+\def\inline{\lstinline[basicstyle=\ttfamily] 
+}
+
+
+\begin{document}
+\maketitle % Insert the title, author and date
+
+Check my \href{https://github.com/JackeyHua-SJTU/os-practice/tree/main/proj3}{Github repo} to see my full dev log.
+
+\tableofcontents
+
+
+%----------------------------------------------------------------------------------------
+\pagebreak
+
+\subfile{main}
+%\subfile{expr}
+%\subfile{conc}
+
+%----------------------------------------------------------------------------------------
+\pagebreak
+
+
+%\nocite{*}
+%\bibliographystyle{IEEEtran}
+%\bibliography{ref}
+\end{document}
