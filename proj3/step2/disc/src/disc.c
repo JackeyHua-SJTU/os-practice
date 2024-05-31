@@ -53,7 +53,7 @@ void decontructor(Disc* disc) {
         perror("Error when closing the file descriptor.");
         exit(-1);
     }
-    printf("\n\nDeconstructor successfully.\n");
+    // printf("\n\nDeconstructor successfully.\n");
 }
 
 void parseCmdInput(Disc* disc, char* cmd, void* data) {

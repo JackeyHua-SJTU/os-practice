@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
                 perror("Receive failed");
                 exit(-1);
             } else if (read21 == 0) {
+                close(sockfd);
                 break;
             }
             totalRead += read21;

@@ -808,6 +808,13 @@ void crOp(char* name, char* key) {
         strcat(buffer_main, "Exceed maximum clients. At most 5!");
         return;
     }
+
+    for (int i = 0; i < user_count; ++i) {
+        if (strcmp(temp[i]._user_id, name) == 0) {
+            strcat(buffer_main, "User has been created before.");
+            return;
+        }
+    }
     
     User cur_user;
     memset(cur_user._user_id, 0, sizeof(cur_user._user_id));

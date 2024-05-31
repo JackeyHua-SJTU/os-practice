@@ -21,7 +21,7 @@ void init_root(int fd) {
     inode_table[0]._last_modified_timestamp = time(NULL);
     inode_table[0]._file_size = 0;
     inode_table[0]._index = 0;
-    inode_table[0]._fa_index = 0;
+    inode_table[0]._fa_index = UINT16_MAX;
     memset(inode_table[0]._direct_block, 0, sizeof(inode_table[0]._direct_block));
     inode_table[0]._indirect_block = 0;
     inode_table[0]._permission = -1;

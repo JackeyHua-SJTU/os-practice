@@ -21,7 +21,7 @@ void init_root(int fd) {
     inode_table[0]._last_modified_timestamp = time(NULL);
     inode_table[0]._file_size = 0;
     inode_table[0]._index = 0;
-    inode_table[0]._fa_index = 0;
+    inode_table[0]._fa_index = 65535;
     memset(inode_table[0]._direct_block, 0, sizeof(inode_table[0]._direct_block));
     inode_table[0]._indirect_block = 0;
     inode_table[0]._permission = -1;
@@ -125,6 +125,7 @@ int gc_inode_recursive(Inode* inode, uint16_t clientID) {
                 }
             }
         }
+        gc_block(inode->_direct_block[i], clientID);
     }
     spbk._inode_bitmap[c] ^= (1 << (31 - r));
     spbk._inode_count--;
@@ -239,6 +240,7 @@ int dir_add_entry(Inode* inode, uint16_t clientID, char* name, uint8_t mode) {
         return 1;
     }
     // TODO: Add indirect link check
+    return -1;
 }
 
 int dir_del_entry(Inode* inode, uint16_t clientID, char* name) {
@@ -355,7 +357,6 @@ void file_read(Inode* inode, uint16_t clientID, char* ans) {
             strcat(ans + (i + DIRECT_LINK) * BLOCK_SIZE, buf);
         }
     }
-
 }
 
 void file_write(Inode* inode, uint16_t clientID, char* src) {

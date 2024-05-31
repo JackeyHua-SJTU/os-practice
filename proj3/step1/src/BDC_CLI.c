@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
         printf("Result: %s\n", response);
         fflush(stdout);
         if (strcmp(strtok(cmd, " \n\r"), "Q") == 0) {
+            close(sockfd);
             break;
         }
     }
